@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pluto.API", "Pluto.API\Pluto.API.csproj", "{F7A18E1E-A49D-4A2E-A3DF-D5281AF605CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pluto.Application", "Pluto.Application\Pluto.Application.csproj", "{F9B07396-5BDD-40FB-AAF5-74C7CE7CE68B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pluto.DAL", "Pluto.DAL\Pluto.DAL.csproj", "{F218A0CA-983E-45CF-81FA-6707165DA7B5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F7A18E1E-A49D-4A2E-A3DF-D5281AF605CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7A18E1E-A49D-4A2E-A3DF-D5281AF605CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7A18E1E-A49D-4A2E-A3DF-D5281AF605CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7A18E1E-A49D-4A2E-A3DF-D5281AF605CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9B07396-5BDD-40FB-AAF5-74C7CE7CE68B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9B07396-5BDD-40FB-AAF5-74C7CE7CE68B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9B07396-5BDD-40FB-AAF5-74C7CE7CE68B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9B07396-5BDD-40FB-AAF5-74C7CE7CE68B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F218A0CA-983E-45CF-81FA-6707165DA7B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F218A0CA-983E-45CF-81FA-6707165DA7B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F218A0CA-983E-45CF-81FA-6707165DA7B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F218A0CA-983E-45CF-81FA-6707165DA7B5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

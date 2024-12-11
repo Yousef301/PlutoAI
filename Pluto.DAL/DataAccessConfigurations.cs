@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Pluto.DAL.DBContext;
+using Pluto.DAL.Interfaces;
 using Pluto.DAL.Interfaces.Repositories;
 using Pluto.DAL.Repositories;
 
@@ -33,6 +34,7 @@ public static class DataAccessConfigurations
     private static IServiceCollection AddRepositories(this IServiceCollection services)
     {
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         return services;
     }
