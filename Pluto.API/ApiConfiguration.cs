@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Pluto.API.Helpers.Implementations;
+using Pluto.API.Helpers.Interfaces;
 using Pluto.Application;
 
 namespace Pluto.API;
@@ -10,7 +12,9 @@ public static class ApiConfiguration
         , IConfiguration configuration)
     {
         services.AddApplicationInfrastructure(configuration)
-            .AddAuthenticationConfigurations(configuration);
+            .AddAuthenticationConfigurations(configuration)
+            .AddHttpContextAccessor()
+            .AddScoped<IUserContext, UserContext>();
 
         return services;
     }

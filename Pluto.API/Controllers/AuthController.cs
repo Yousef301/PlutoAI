@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pluto.API.Helpers.Implementations;
+using Pluto.API.Helpers.Interfaces;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.Interfaces;
 
@@ -11,19 +13,23 @@ public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IGoogleAuthService _googleAuthService;
+    private readonly IUserContext _userContextAccessor;
 
     public AuthController(
         IUserService userService,
-        IGoogleAuthService googleAuthService)
+        IGoogleAuthService googleAuthService, IUserContext userContextAccessor)
     {
         _userService = userService;
         _googleAuthService = googleAuthService;
+        _userContextAccessor = userContextAccessor;
     }
 
     [HttpPost("signin")]
     public async Task<IActionResult> Login([FromBody] SignInRequest request)
     {
         var response = await _userService.SignInAsync(request);
+
+        Console.WriteLine(response.Token);
 
         return Ok(response.Token);
     }
@@ -67,18 +73,13 @@ public class AuthController : ControllerBase
         ", "text/html");
         }
 
+        Console.WriteLine(token);
+
         return Content($@"
         <script>
             window.opener.postMessage({{ type: 'google-auth-success', token: '{token}' }}, '*');
             window.close();
         </script>
     ", "text/html");
-    }
-
-    [Authorize]
-    [HttpGet("hello")]
-    public IActionResult Hello()
-    {
-        return Ok("Hello World");
     }
 }
