@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Pluto.API.Helpers.Implementations;
+﻿using Microsoft.AspNetCore.Mvc;
 using Pluto.API.Helpers.Interfaces;
 using Pluto.Application.DTOs.Auth;
-using Pluto.Application.Services.Interfaces;
+using Pluto.Application.Services.EntityServices.Interfaces.Auth;
 
 namespace Pluto.API.Controllers;
 
@@ -72,8 +70,6 @@ public class AuthController : ControllerBase
             </script>
         ", "text/html");
         }
-
-        Console.WriteLine(token);
 
         return Content($@"
         <script>

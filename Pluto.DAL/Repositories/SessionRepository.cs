@@ -14,12 +14,18 @@ public class SessionRepository : ISessionRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Session>> GetUserSessionsAsync(int userId)
+    public async Task<IEnumerable<Session>> GetUserSessionsAsync(
+        int userId,
+        bool includeMessages = false
+    )
     {
-        return await _context.Sessions
-            .Where(s => s.UserId == userId)
-            .AsNoTracking()
-            .ToListAsync();
+        var query = _context.Sessions
+            .Where(s => s.UserId == userId);
+
+        if (includeMessages)
+            query = query.Include(s => s.Messages);
+
+        return await query.ToListAsync();
     }
 
     public async Task<Session> CreateAsync(Session session)

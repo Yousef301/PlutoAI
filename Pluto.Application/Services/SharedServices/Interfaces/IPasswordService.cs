@@ -1,4 +1,4 @@
-﻿namespace Pluto.Application.Services.Interfaces;
+﻿namespace Pluto.Application.Services.SharedServices.Interfaces;
 
 public interface IPasswordService
 {
