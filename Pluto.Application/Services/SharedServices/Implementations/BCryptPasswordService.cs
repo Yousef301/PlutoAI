@@ -1,7 +1,7 @@
-﻿using Pluto.Application.Services.Interfaces;
+﻿using Pluto.Application.Services.SharedServices.Interfaces;
 
 
-namespace Pluto.Application.Services.Implementations;
+namespace Pluto.Application.Services.SharedServices.Implementations;
 
 public class BCryptPasswordService : IPasswordService
 {

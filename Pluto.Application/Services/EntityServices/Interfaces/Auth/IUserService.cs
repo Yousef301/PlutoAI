@@ -1,6 +1,6 @@
 ﻿using Pluto.Application.DTOs.Auth;
 
-namespace Pluto.Application.Services.Interfaces;
+namespace Pluto.Application.Services.EntityServices.Interfaces.Auth;
 
 public interface IUserService
 {

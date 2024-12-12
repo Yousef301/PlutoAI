@@ -2,10 +2,10 @@
 using System.Security.Claims;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Pluto.Application.Services.Interfaces;
+using Pluto.Application.Services.SharedServices.Interfaces;
 using Pluto.DAL.Entities;
 
-namespace Pluto.Application.Services.Implementations;
+namespace Pluto.Application.Services.SharedServices.Implementations;
 
 public class JwtTokenGeneratorService : ITokenGeneratorService
 {

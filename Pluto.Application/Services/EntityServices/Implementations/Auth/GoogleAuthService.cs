@@ -1,10 +1,11 @@
 ﻿using System.Net.Http.Json;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
-using Pluto.Application.Services.Interfaces;
+using Pluto.Application.Services.EntityServices.Interfaces.Auth;
+using Pluto.Application.Services.SharedServices.Interfaces;
 using Pluto.DAL.Interfaces.Repositories;
 
-namespace Pluto.Application.Services.Implementations;
+namespace Pluto.Application.Services.EntityServices.Implementations.Auth;
 
 public class GoogleAuthService : IGoogleAuthService
 {
@@ -75,7 +76,7 @@ public class GoogleAuthService : IGoogleAuthService
         {
             return null;
         }
-        
+
         return tokenData.IdToken;
     }
 
