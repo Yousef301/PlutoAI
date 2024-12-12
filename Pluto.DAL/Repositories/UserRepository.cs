@@ -31,10 +31,10 @@ public class UserRepository : IUserRepository
 
     public async Task<User> CreateAsync(User user)
     {
-        var createdUser = await _context.Users
-            .AddAsync(user);
+        await _context.Users.AddAsync(user);
+        await _context.SaveChangesAsync();
 
-        return createdUser.Entity;
+        return user;
     }
 
     public async Task<User> FindOrCreateUserAsync(GoogleJsonWebSignature.Payload payload)

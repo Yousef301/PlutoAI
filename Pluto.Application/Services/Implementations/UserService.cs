@@ -13,21 +13,18 @@ public class UserService : IUserService
     private readonly IPasswordService _passwordService;
     private readonly ITokenGeneratorService _tokenGeneratorService;
     private readonly IMapper _mapper;
-    private readonly IUnitOfWork _unitOfWork;
 
     public UserService(
         IUserRepository userRepository,
         IPasswordService passwordService,
         ITokenGeneratorService tokenGeneratorService,
-        IMapper mapper,
-        IUnitOfWork unitOfWork
+        IMapper mapper
     )
     {
         _userRepository = userRepository;
         _passwordService = passwordService;
         _tokenGeneratorService = tokenGeneratorService;
         _mapper = mapper;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<SignInResponse> SignInAsync(SignInRequest request)
@@ -51,8 +48,6 @@ public class UserService : IUserService
         user.Password = _passwordService.HashPassword(request.Password);
 
         var createdUser = await _userRepository.CreateAsync(user);
-
-        await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<SignUpResponse>(createdUser);
     }
