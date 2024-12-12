@@ -9,7 +9,7 @@ public class PlutoDbContextFactory : IDesignTimeDbContextFactory<PlutoDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<PlutoDbContext>();
 
-        var connectionString = "Server=localhost;Database=ChatBot;Trusted_Connection=True;TrustServerCertificate=True;";
+        var connectionString = Environment.GetEnvironmentVariable("PlutoAI");
 
         optionsBuilder.UseSqlServer(connectionString);
 

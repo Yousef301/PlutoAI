@@ -17,6 +17,7 @@ public static class ApplicationConfiguration
         services.AddSingleton<ITokenGeneratorService, JwtTokenGeneratorService>();
         services.AddSingleton<IPasswordService, BCryptPasswordService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 
         return services;
     }
