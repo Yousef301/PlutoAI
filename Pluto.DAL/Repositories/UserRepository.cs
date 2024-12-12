@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Google.Apis.Auth;
 using Microsoft.EntityFrameworkCore;
 using Pluto.DAL.DBContext;
 using Pluto.DAL.Entities;
@@ -34,6 +35,23 @@ public class UserRepository : IUserRepository
             .AddAsync(user);
 
         return createdUser.Entity;
+    }
+
+    public async Task<User> FindOrCreateUserAsync(GoogleJsonWebSignature.Payload payload)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
+
+        if (user != null) return user;
+        user = new User
+        {
+            FullName = payload.Name,
+            Email = payload.Email,
+            Password = null
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return user;
     }
 
     public User Update(User updatedUser)

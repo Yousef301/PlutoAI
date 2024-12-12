@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.Interfaces;
 
@@ -9,10 +10,14 @@ namespace Pluto.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IGoogleAuthService _googleAuthService;
 
-    public AuthController(IUserService userService)
+    public AuthController(
+        IUserService userService,
+        IGoogleAuthService googleAuthService)
     {
         _userService = userService;
+        _googleAuthService = googleAuthService;
     }
 
     [HttpPost("signin")]
@@ -29,5 +34,51 @@ public class AuthController : ControllerBase
         var response = await _userService.SignUpAsync(request);
 
         return Created(string.Empty, new { response.Email });
+    }
+
+    [HttpGet("google-signin")]
+    public IActionResult RedirectToGoogle()
+    {
+        var redirectUrl = _googleAuthService.GetGoogleOAuthUrl();
+        return Redirect(redirectUrl);
+    }
+
+    [HttpGet("google-callback")]
+    public async Task<IActionResult> GoogleCallback([FromQuery] string code)
+    {
+        if (string.IsNullOrEmpty(code))
+        {
+            return Content(@"
+            <script>
+                window.opener.postMessage({ type: 'google-auth-error' }, '*');
+                window.close();
+            </script>
+        ", "text/html");
+        }
+
+        var token = await _googleAuthService.HandleGoogleCallbackAsync(code);
+        if (token == null)
+        {
+            return Content(@"
+            <script>
+                window.opener.postMessage({ type: 'google-auth-error' }, '*');
+                window.close();
+            </script>
+        ", "text/html");
+        }
+
+        return Content($@"
+        <script>
+            window.opener.postMessage({{ type: 'google-auth-success', token: '{token}' }}, '*');
+            window.close();
+        </script>
+    ", "text/html");
+    }
+
+    [Authorize]
+    [HttpGet("hello")]
+    public IActionResult Hello()
+    {
+        return Ok("Hello World");
     }
 }
