@@ -46,7 +46,7 @@ public class MessagesController : ControllerBase
         request.SessionId = sessionId;
         request.UserId = _userContext.Id;
 
-        var message = await _messageService.CreateMessageAsync(request);
+        var message = await _messageService.SendMessageAsync(request);
 
         return Created(string.Empty, message);
     }
