@@ -24,6 +24,8 @@ public static class ApplicationConfiguration
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IMessageService, MessageService>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<IModelService, OllamaService>();
+        services.AddHttpClient();
 
         return services;
     }
