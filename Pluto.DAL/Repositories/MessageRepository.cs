@@ -22,7 +22,7 @@ public class MessageRepository : IMessageRepository
             .ToListAsync();
     }
 
-    public async Task<Message> CreateMessageAsync(Message message)
+    public async Task<Message> CreateAsync(Message message)
     {
         await _context.Messages.AddAsync(message);
         await _context.SaveChangesAsync();

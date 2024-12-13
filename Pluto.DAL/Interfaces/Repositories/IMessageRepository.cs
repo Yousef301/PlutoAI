@@ -5,5 +5,5 @@ namespace Pluto.DAL.Interfaces.Repositories;
 public interface IMessageRepository
 {
     Task<IEnumerable<Message>> GetSessionMessagesAsync(int sessionId);
-    Task<Message> CreateMessageAsync(Message message);
+    Task<Message> CreateAsync(Message message);
 }
