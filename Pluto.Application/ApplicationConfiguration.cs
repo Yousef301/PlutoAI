@@ -22,6 +22,7 @@ public static class ApplicationConfiguration
         services.AddSingleton<IPasswordService, BCryptPasswordService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<IMessageService, MessageService>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 
         return services;
