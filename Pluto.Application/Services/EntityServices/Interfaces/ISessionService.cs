@@ -7,4 +7,5 @@ public interface ISessionService
 {
     Task<IEnumerable<GetSessionsResponse>> GetUserSessionsAsync(int userId);
     Task<CreateSessionResponse> CreateAsync(CreateSessionRequest session);
+    Task<UpdateSessionTitleResponse> UpdateAsync(UpdateSessionTitleRequest session);
 }

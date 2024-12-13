@@ -42,4 +42,21 @@ public class SessionService : ISessionService
 
         return _mapper.Map<CreateSessionResponse>(createdSession);
     }
+
+    public async Task<UpdateSessionTitleResponse> UpdateAsync(UpdateSessionTitleRequest session)
+    {
+        var sessionToUpdate = await _sessionRepository.GetAsync(session.Id);
+
+        if (sessionToUpdate == null)
+            throw new ArgumentException("Session not found");
+
+        if (sessionToUpdate.UserId != session.UserId)
+            throw new ArgumentException("Unauthorized");
+
+        sessionToUpdate.Title = session.Title;
+
+        await _sessionRepository.Update(sessionToUpdate);
+
+        return _mapper.Map<UpdateSessionTitleResponse>(sessionToUpdate);
+    }
 }

@@ -10,6 +10,7 @@ public class SessionProfile : Profile
     {
         CreateMap<CreateSessionRequest, Session>();
         CreateMap<Session, CreateSessionResponse>();
+        CreateMap<Session, UpdateSessionTitleResponse>();
         CreateMap<Session, GetSessionsResponse>()
             .ForMember(
                 dest => dest.MessagesCount,
