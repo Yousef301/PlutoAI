@@ -11,23 +11,20 @@ public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IGoogleAuthService _googleAuthService;
-    private readonly IUserContext _userContextAccessor;
 
     public AuthController(
         IUserService userService,
-        IGoogleAuthService googleAuthService, IUserContext userContextAccessor)
+        IGoogleAuthService googleAuthService
+    )
     {
         _userService = userService;
         _googleAuthService = googleAuthService;
-        _userContextAccessor = userContextAccessor;
     }
 
     [HttpPost("signin")]
     public async Task<IActionResult> Login([FromBody] SignInRequest request)
     {
         var response = await _userService.SignInAsync(request);
-
-        Console.WriteLine(response.Token);
 
         return Ok(response.Token);
     }
@@ -70,6 +67,8 @@ public class AuthController : ControllerBase
             </script>
         ", "text/html");
         }
+
+        Console.WriteLine(token);
 
         return Content($@"
         <script>
