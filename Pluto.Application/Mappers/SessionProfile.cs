@@ -15,6 +15,10 @@ public class SessionProfile : Profile
             .ForMember(
                 dest => dest.MessagesCount,
                 opt => opt.MapFrom(src => src.Messages.Count)
-            );
+            )
+            .AfterMap((src, dest) => 
+            {
+                dest.UpdatedAt = src.UpdatedAt; 
+            });
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pluto.DAL.DBContext;
 
@@ -11,9 +12,11 @@ using Pluto.DAL.DBContext;
 namespace Pluto.DAL.Migrations
 {
     [DbContext(typeof(PlutoDbContext))]
-    partial class PlutoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241213191032_UpdateSessionUpdatedAtField")]
+    partial class UpdateSessionUpdatedAtField
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -51,7 +54,7 @@ namespace Pluto.DAL.Migrations
 
                     b.HasIndex("SessionId");
 
-                    b.ToTable("Messages", (string)null);
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("Pluto.DAL.Entities.Session", b =>
@@ -83,7 +86,7 @@ namespace Pluto.DAL.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Sessions", (string)null);
+                    b.ToTable("Sessions");
                 });
 
             modelBuilder.Entity("Pluto.DAL.Entities.User", b =>
@@ -113,7 +116,7 @@ namespace Pluto.DAL.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Pluto.DAL.Entities.Message", b =>

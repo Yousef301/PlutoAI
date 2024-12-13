@@ -4,6 +4,7 @@ using Pluto.Application.DTOs.Messages;
 using Pluto.Application.Services.EntityServices.Interfaces;
 using Pluto.Application.Services.SharedServices.Interfaces;
 using Pluto.DAL.Entities;
+using Pluto.DAL.Interfaces;
 using Pluto.DAL.Interfaces.Repositories;
 
 namespace Pluto.Application.Services.EntityServices.Implementations;
@@ -13,19 +14,22 @@ public class MessageService : IMessageService
     private readonly ISessionRepository _sessionRepository;
     private readonly IMessageRepository _messageRepository;
     private readonly IModelService _ollamaService;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
     public MessageService(
         ISessionRepository sessionRepository,
         IMessageRepository messageRepository,
         IMapper mapper,
-        IModelService ollamaService
+        IModelService ollamaService,
+        IUnitOfWork unitOfWork
     )
     {
         _sessionRepository = sessionRepository;
         _messageRepository = messageRepository;
         _mapper = mapper;
         _ollamaService = ollamaService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IEnumerable<GetMessagesResponse>> GetSessionMessagesAsync(GetMessagesRequest request)
@@ -61,20 +65,36 @@ public class MessageService : IMessageService
             throw new Exception("Unauthorized");
         }
 
-        var recentMessages = await _messageRepository
-            .GetSessionMessagesAsync(request.SessionId);
+        await _unitOfWork.BeginTransactionAsync();
 
-        var contextPrompt = BuildContextualPrompt(recentMessages, request.Query);
+        try
+        {
+            var recentMessages = await _messageRepository
+                .GetSessionMessagesAsync(request.SessionId, 10, true);
 
-        var response = await _ollamaService.GenerateResponseAsync(contextPrompt);
+            var contextPrompt = BuildContextualPrompt(recentMessages, request.Query);
 
-        var message = _mapper.Map<Message>(request);
+            var response = await _ollamaService.GenerateResponseAsync(contextPrompt);
 
-        message.Response = response;
+            var message = _mapper.Map<Message>(request);
 
-        await _messageRepository.CreateAsync(message);
+            message.Response = response;
 
-        return _mapper.Map<CreateMessageResponse>(message);
+            await _messageRepository.CreateAsync(message);
+
+            session.UpdatedAt = DateTime.Now;
+
+            await _sessionRepository.Update(session);
+
+            await _unitOfWork.CommitTransactionAsync();
+
+            return _mapper.Map<CreateMessageResponse>(message);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
     }
 
     private string BuildContextualPrompt(IEnumerable<Message> recentMessages, string newQuery)

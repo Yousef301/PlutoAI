@@ -2,4 +2,10 @@
 
 namespace Pluto.Application.DTOs.Sessions;
 
-public record GetSessionsResponse(int Id, string Title, int MessagesCount);
+public class GetSessionsResponse
+{
+    public int Id { get; set; }
+    public string Title { get; set; }
+    public int MessagesCount { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

@@ -14,13 +14,29 @@ public class MessageRepository : IMessageRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Message>> GetSessionMessagesAsync(int sessionId)
+    public async Task<IEnumerable<Message>> GetSessionMessagesAsync(
+        int sessionId,
+        int take = 5,
+        bool limit = false
+    )
     {
+        if (limit)
+        {
+            return await _context.Messages
+                .Where(m => m.SessionId == sessionId)
+                .OrderByDescending(m => m.Id)
+                .Take(take)
+                .AsNoTracking()
+                .OrderBy(m => m.Id)
+                .ToListAsync();
+        }
+
         return await _context.Messages
             .Where(m => m.SessionId == sessionId)
             .AsNoTracking()
             .ToListAsync();
     }
+
 
     public async Task<Message> CreateAsync(Message message)
     {

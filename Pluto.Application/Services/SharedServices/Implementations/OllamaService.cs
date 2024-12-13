@@ -27,16 +27,17 @@ public class OllamaService : IModelService
 
     public async Task<string> GenerateResponseAsync(string prompt)
     {
-        var ollamaUrl = _configuration["Ollama"];
+        var ollamaUrl = _configuration["Ollama:Url"];
+        var model = _configuration["Ollama:Model"];
 
-        if (string.IsNullOrWhiteSpace(ollamaUrl))
+        if (string.IsNullOrEmpty(ollamaUrl) || string.IsNullOrEmpty(model))
         {
-            throw new Exception("Ollama API URL is not configured");
+            throw new Exception("Ollama API configuration is missing.");
         }
 
         var requestPayload = new
         {
-            model = "qwen2.5-coder",
+            model = model,
             prompt = prompt,
             stream = false
         };

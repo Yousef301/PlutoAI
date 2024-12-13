@@ -8,7 +8,8 @@ public class MessageProfile : Profile
 {
     public MessageProfile()
     {
-        CreateMap<Message, GetMessagesResponse>();
+        CreateMap<Message, GetMessagesResponse>()
+            .ForMember(dest => dest.MessageDate, opt => opt.MapFrom(src => src.CreatedAt));
         CreateMap<CreateMessageRequest, Message>();
         CreateMap<Message, CreateMessageResponse>();
     }

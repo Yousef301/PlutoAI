@@ -31,7 +31,9 @@ public class SessionService : ISessionService
         var sessions = await _sessionRepository
             .GetUserSessionsAsync(userId, includeMessages: true);
 
-        return _mapper.Map<IEnumerable<GetSessionsResponse>>(sessions);
+        var _sessions = _mapper.Map<IEnumerable<GetSessionsResponse>>(sessions);
+
+        return _sessions;
     }
 
     public async Task<CreateSessionResponse> CreateAsync(CreateSessionRequest session)
