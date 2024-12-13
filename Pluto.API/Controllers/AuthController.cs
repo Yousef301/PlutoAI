@@ -71,6 +71,8 @@ public class AuthController : ControllerBase
         ", "text/html");
         }
 
+        Console.WriteLine(token);
+
         return Content($@"
         <script>
             window.opener.postMessage({{ type: 'google-auth-success', token: '{token}' }}, '*');

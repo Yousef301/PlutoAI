@@ -40,4 +40,18 @@ public class SessionsController : ControllerBase
 
         return Created(string.Empty, new { createdSession.Id });
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateSessionTitleAsync(
+        [FromBody] UpdateSessionTitleRequest request,
+        int id
+    )
+    {
+        request.UserId = _userContext.Id;
+        request.Id = id;
+
+        var updatedSession = await _sessionService.UpdateAsync(request);
+
+        return Ok(updatedSession);
+    }
 }
