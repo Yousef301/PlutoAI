@@ -3,7 +3,6 @@ using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.SharedServices.Interfaces;
-using System.IO;
 
 namespace Pluto.Application.Services.SharedServices.Implementations;
 

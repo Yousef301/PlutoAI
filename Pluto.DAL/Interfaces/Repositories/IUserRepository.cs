@@ -8,8 +8,9 @@ public interface IUserRepository
 {
     Task<User?> GetAsync(int id);
     Task<User?> GetByEmailAsync(string email);
+    Task<User?> GetByConfirmationTokenAsync(Guid token);
     Task<User> CreateAsync(User user);
     Task<User> FindOrCreateUserAsync(GoogleJsonWebSignature.Payload payload);
-    User Update(User updatedUser);
+    Task<User> UpdateAsync(User user);
     Task<bool> ExistsAsync(Expression<Func<User, bool>> predicate);
 }

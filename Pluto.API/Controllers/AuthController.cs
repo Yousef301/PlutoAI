@@ -2,6 +2,7 @@
 using Pluto.API.Helpers.Interfaces;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces.Auth;
+using Pluto.Application.Services.SharedServices.Interfaces;
 
 namespace Pluto.API.Controllers;
 
@@ -10,14 +11,17 @@ namespace Pluto.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IEmailService _emailService;
     private readonly IGoogleAuthService _googleAuthService;
 
     public AuthController(
         IUserService userService,
-        IGoogleAuthService googleAuthService
+        IGoogleAuthService googleAuthService,
+        IEmailService emailService
     )
     {
         _userService = userService;
+        _emailService = emailService;
         _googleAuthService = googleAuthService;
     }
 
@@ -26,7 +30,7 @@ public class AuthController : ControllerBase
     {
         var response = await _userService.SignInAsync(request);
 
-        return Ok(response.Token);
+        return Ok(response);
     }
 
     [HttpPost("signup")]
@@ -76,5 +80,21 @@ public class AuthController : ControllerBase
             window.close();
         </script>
     ", "text/html");
+    }
+
+    [HttpPost("send-confirmation-email")]
+    public async Task<IActionResult> SendConfirmEmail([FromBody] EmailConfirmationRequest request)
+    {
+        await _userService.SendConfirmationEmail(request);
+
+        return Ok();
+    }
+
+    [HttpPost("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
+    {
+        await _userService.ConfirmEmail(token);
+
+        return Ok();
     }
 }
