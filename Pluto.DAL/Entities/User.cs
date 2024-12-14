@@ -9,4 +9,5 @@ public class User : BaseEntity
     public Guid? EmailConfirmationToken { get; set; }
     public long? EmailConfirmationTokenExpiration { get; set; }
     public ICollection<Session> Sessions { get; set; }
+    public ICollection<PasswordResetRequest> PasswordResetRequests { get; set; }
 }

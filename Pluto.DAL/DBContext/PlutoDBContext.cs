@@ -9,6 +9,7 @@ public class PlutoDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Session> Sessions { get; set; }
     public DbSet<Message> Messages { get; set; }
+    public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; }
 
     public PlutoDbContext(DbContextOptions<PlutoDbContext> options)
         : base(options)

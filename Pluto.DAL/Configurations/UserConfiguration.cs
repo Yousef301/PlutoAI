@@ -14,5 +14,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .WithOne(s => s.User)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(u => u.PasswordResetRequests)
+            .WithOne(prr => prr.User)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

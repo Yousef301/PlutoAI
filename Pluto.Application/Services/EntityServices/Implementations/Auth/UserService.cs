@@ -4,6 +4,7 @@ using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces.Auth;
 using Pluto.Application.Services.SharedServices.Interfaces;
 using Pluto.DAL.Entities;
+using Pluto.DAL.Enums;
 using Pluto.DAL.Interfaces;
 using Pluto.DAL.Interfaces.Repositories;
 
@@ -18,6 +19,7 @@ public class UserService : IUserService
     private readonly IEmailService _emailService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
+    private readonly IPasswordResetRequestRepository _passwordResetRequestRepository;
 
     public UserService(
         IUserRepository userRepository,
@@ -26,7 +28,8 @@ public class UserService : IUserService
         IMapper mapper,
         IEmailService emailService,
         IUnitOfWork unitOfWork,
-        IConfiguration configuration
+        IConfiguration configuration,
+        IPasswordResetRequestRepository passwordResetRequestRepository
     )
     {
         _userRepository = userRepository;
@@ -36,6 +39,7 @@ public class UserService : IUserService
         _emailService = emailService;
         _unitOfWork = unitOfWork;
         _configuration = configuration;
+        _passwordResetRequestRepository = passwordResetRequestRepository;
     }
 
     public async Task<SignInResponse> SignInAsync(SignInRequest request)
@@ -82,7 +86,8 @@ public class UserService : IUserService
             await _userRepository.UpdateAsync(user);
 
             await _emailService.SendEmailAsync(request.Email, "Confirmation Email",
-                new EmailConfirmationBody(baseUrl + "/confirm-email?token=" + user.EmailConfirmationToken));
+                new EmailConfirmationBody(baseUrl + "/confirm-email?token=" + user.EmailConfirmationToken),
+                Template.EmailConfirmation);
 
             await _unitOfWork.CommitTransactionAsync();
         }
@@ -103,5 +108,68 @@ public class UserService : IUserService
         user.EmailConfirmationTokenExpiration = null;
 
         await _userRepository.UpdateAsync(user);
+    }
+
+    public async Task SendPasswordResetEmail(SendPasswordResetRequest request)
+    {
+        var user = await _userRepository.GetByEmailAsync(request.Email)
+                   ?? throw new Exception("User with this email does not exist");
+
+        await _unitOfWork.BeginTransactionAsync();
+
+        try
+        {
+            var baseUrl = _configuration["ResetPassword"];
+
+            var passwordResetRequest = new PasswordResetRequest
+            {
+                Token = Guid.NewGuid(),
+                ExpiryDate = ((DateTimeOffset)DateTime.UtcNow.AddMinutes(10)).ToUnixTimeSeconds(),
+                UserId = user.Id
+            };
+
+            await _passwordResetRequestRepository.CreateAsync(passwordResetRequest);
+
+            await _emailService.SendEmailAsync(request.Email, "Password Reset",
+                new EmailConfirmationBody(baseUrl + "?token=" + passwordResetRequest.Token),
+                Template.PasswordReset);
+
+            await _unitOfWork.CommitTransactionAsync();
+        }
+        catch (Exception e)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    public async Task ResetPassword(ResetPasswordRequest request)
+    {
+        var passwordResetRequest = await _passwordResetRequestRepository
+                                       .GetByTokenAsync(Guid.Parse(request.Token))
+                                   ?? throw new Exception("Invalid token");
+
+        var user = await _userRepository.GetAsync(passwordResetRequest.UserId)
+                   ?? throw new Exception("User does not exist");
+
+        await _unitOfWork.BeginTransactionAsync();
+
+        try
+        {
+            user.Password = _passwordService.HashPassword(request.Password);
+
+            await _userRepository.UpdateAsync(user);
+
+            passwordResetRequest.Used = true;
+
+            await _passwordResetRequestRepository.UpdateAsync(passwordResetRequest);
+
+            await _unitOfWork.CommitTransactionAsync();
+        }
+        catch (Exception e)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
     }
 }
