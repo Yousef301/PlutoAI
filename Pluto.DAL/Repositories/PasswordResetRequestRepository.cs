@@ -22,6 +22,7 @@ public class PasswordResetRequestRepository : IPasswordResetRequestRepository
 
         if (passwordResetRequest != null &&
             passwordResetRequest.ExpiryDate.HasValue &&
+            !passwordResetRequest.Used &&
             DateTimeOffset
                 .FromUnixTimeSeconds(passwordResetRequest.ExpiryDate.Value)
                 .UtcDateTime < DateTime.Now)

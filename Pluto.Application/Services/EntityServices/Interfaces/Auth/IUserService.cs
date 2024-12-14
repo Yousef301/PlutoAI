@@ -8,4 +8,6 @@ public interface IUserService
     public Task<SignUpResponse> SignUpAsync(SignUpRequest request);
     public Task SendConfirmationEmail(EmailConfirmationRequest request);
     public Task ConfirmEmail(string token);
+    public Task SendPasswordResetEmail(SendPasswordResetRequest request);
+    public Task ResetPassword(ResetPasswordRequest request);
 }

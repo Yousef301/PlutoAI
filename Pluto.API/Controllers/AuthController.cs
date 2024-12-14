@@ -11,18 +11,18 @@ namespace Pluto.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
-    private readonly IEmailService _emailService;
     private readonly IGoogleAuthService _googleAuthService;
+    private readonly IConfiguration _configuration;
 
     public AuthController(
         IUserService userService,
         IGoogleAuthService googleAuthService,
-        IEmailService emailService
+        IConfiguration configuration
     )
     {
         _userService = userService;
-        _emailService = emailService;
         _googleAuthService = googleAuthService;
+        _configuration = configuration;
     }
 
     [HttpPost("signin")]
@@ -94,6 +94,22 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
     {
         await _userService.ConfirmEmail(token);
+
+        return Redirect(_configuration["AccountActivatedUrl"]);
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] SendPasswordResetRequest request)
+    {
+        await _userService.SendPasswordResetEmail(request);
+
+        return Ok();
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        await _userService.ResetPassword(request);
 
         return Ok();
     }
