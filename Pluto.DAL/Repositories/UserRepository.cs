@@ -29,6 +29,23 @@ public class UserRepository : IUserRepository
             .SingleOrDefaultAsync(c => c.Email == email);
     }
 
+    public async Task<User?> GetByConfirmationTokenAsync(Guid token)
+    {
+        var user = await _context.Users
+            .SingleOrDefaultAsync(c => c.EmailConfirmationToken == token);
+
+        if (user != null &&
+            user.EmailConfirmationTokenExpiration.HasValue &&
+            DateTimeOffset
+                .FromUnixTimeSeconds(user.EmailConfirmationTokenExpiration.Value)
+                .UtcDateTime < DateTime.Now)
+        {
+            return user;
+        }
+
+        return null;
+    }
+
     public async Task<User> CreateAsync(User user)
     {
         await _context.Users.AddAsync(user);
@@ -46,7 +63,8 @@ public class UserRepository : IUserRepository
         {
             FullName = payload.Name,
             Email = payload.Email,
-            Password = null
+            Password = null,
+            EmailConfirmed = true
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -54,9 +72,11 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public User Update(User updatedUser)
+    public async Task<User> UpdateAsync(User updatedUser)
     {
         _context.Users.Update(updatedUser);
+
+        await _context.SaveChangesAsync();
 
         return updatedUser;
     }
