@@ -36,6 +36,7 @@ public static class DataAccessConfigurations
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddScoped<IPasswordResetRequestRepository, PasswordResetRequestRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         return services;
