@@ -1,5 +1,6 @@
-﻿using System.Security.Authentication;
-using FluentValidation;
+﻿using FluentValidation;
+using Pluto.DAL.Exceptions;
+using Pluto.DAL.Exceptions.Base;
 
 namespace Pluto.API.Middlewares;
 
@@ -39,7 +40,10 @@ public class GlobalExceptionHandler
         var statusCode = exception switch
         {
             UnauthorizedAccessException => StatusCodes.Status403Forbidden,
-            InvalidCredentialException => StatusCodes.Status401Unauthorized,
+            InvalidCredentialsException => StatusCodes.Status401Unauthorized,
+            BadRequestException => StatusCodes.Status400BadRequest,
+            ConflictException => StatusCodes.Status409Conflict,
+            ServiceException => StatusCodes.Status503ServiceUnavailable,
             _ => StatusCodes.Status500InternalServerError,
         };
 
@@ -54,8 +58,6 @@ public class GlobalExceptionHandler
                 : exception.Message,
             TraceId = traceId
         };
-
-        context.Response.Headers.Add("X-Trace-ID", traceId);
 
         return context.Response.WriteAsJsonAsync(response);
     }

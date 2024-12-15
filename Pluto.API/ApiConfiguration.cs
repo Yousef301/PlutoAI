@@ -1,8 +1,13 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Amazon.CloudWatchLogs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Pluto.API.Helpers.Implementations;
 using Pluto.API.Helpers.Interfaces;
 using Pluto.Application;
+using Pluto.DAL.Exceptions;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.AwsCloudWatch;
 
 namespace Pluto.API;
 
@@ -14,6 +19,7 @@ public static class ApiConfiguration
         services.AddApplicationInfrastructure(configuration)
             .AddAuthenticationConfigurations(configuration)
             .AddHttpContextAccessor()
+            .AddSerilogConfigurations(configuration)
             .AddScoped<IUserContext, UserContext>();
 
         return services;
@@ -22,6 +28,16 @@ public static class ApiConfiguration
     private static IServiceCollection AddAuthenticationConfigurations(this IServiceCollection services,
         IConfiguration configuration)
     {
+        var clientId = configuration["ClientId"];
+        var clientSecret = configuration["ClientSecret"];
+        var issuer = configuration["Issuer"];
+        var audience = configuration["Audience"];
+        var secretKey = configuration["SecretKey"];
+
+        if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(issuer) ||
+            string.IsNullOrEmpty(audience) || string.IsNullOrEmpty(secretKey))
+            throw new InvalidConfigurationException("Authentication configurations are missing.");
+
         services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -29,8 +45,8 @@ public static class ApiConfiguration
             })
             .AddGoogle(options =>
             {
-                options.ClientId = configuration["ClientId"];
-                options.ClientSecret = configuration["ClientSecret"];
+                options.ClientId = clientId;
+                options.ClientSecret = clientSecret;
             })
             .AddJwtBearer(options =>
             {
@@ -40,14 +56,50 @@ public static class ApiConfiguration
                     ValidateAudience = true,
                     ValidateIssuerSigningKey = true,
                     ValidateLifetime = true,
-                    ValidIssuer = configuration["Issuer"],
-                    ValidAudience = configuration["Audience"],
+                    ValidIssuer = issuer,
+                    ValidAudience = audience,
                     IssuerSigningKey =
-                        new SymmetricSecurityKey(Convert.FromBase64String(configuration["SecretKey"])),
+                        new SymmetricSecurityKey(Convert.FromBase64String(secretKey)),
                     ClockSkew = TimeSpan.Zero
                 };
             });
 
+
+        return services;
+    }
+
+    private static IServiceCollection AddSerilogConfigurations(this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var cloudWatchSinkOptions = new CloudWatchSinkOptions
+        {
+            LogGroupName =
+                configuration["LogGroup"] ??
+                throw new InvalidConfigurationException("Log group configuration is missing."),
+            LogStreamNameProvider = new DefaultLogStreamProvider(),
+            TextFormatter = new Serilog.Formatting.Json.JsonFormatter(),
+            MinimumLogEventLevel = LogEventLevel.Information,
+            BatchSizeLimit = 100,
+            QueueSizeLimit = 10000,
+            RetryAttempts = 5,
+            Period = TimeSpan.FromSeconds(10),
+            CreateLogGroup = true,
+            LogGroupRetentionPolicy = LogGroupRetentionPolicy.OneMonth,
+        };
+
+        var cloudWatchClient = new AmazonCloudWatchLogsClient();
+
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .MinimumLevel.Override("System", LogEventLevel.Information)
+            .MinimumLevel.Override("Default", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.AmazonCloudWatch(cloudWatchSinkOptions, cloudWatchClient)
+            .CreateLogger();
+
+        services.AddSingleton(Log.Logger);
 
         return services;
     }

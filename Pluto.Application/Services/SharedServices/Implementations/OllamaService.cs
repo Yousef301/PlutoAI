@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Pluto.Application.Services.SharedServices.Interfaces;
+using Pluto.DAL.Exceptions;
 using Pluto.DAL.Interfaces.Repositories;
 
 namespace Pluto.Application.Services.SharedServices.Implementations;
@@ -11,17 +12,14 @@ public class OllamaService : IModelService
 {
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IMessageRepository _messageRepository;
 
     public OllamaService(
         IConfiguration configuration,
-        IHttpClientFactory httpClientFactory,
-        IMessageRepository messageRepository
+        IHttpClientFactory httpClientFactory
     )
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
-        _messageRepository = messageRepository;
     }
 
 
@@ -31,9 +29,7 @@ public class OllamaService : IModelService
         var model = _configuration["Ollama:Model"];
 
         if (string.IsNullOrEmpty(ollamaUrl) || string.IsNullOrEmpty(model))
-        {
-            throw new Exception("Ollama API configuration is missing.");
-        }
+            throw new InvalidConfigurationException("Ollama API configuration is missing.");
 
         var requestPayload = new
         {
@@ -46,23 +42,31 @@ public class OllamaService : IModelService
         var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
         var client = _httpClientFactory.CreateClient();
-        var response = await client.PostAsync(ollamaUrl, content);
 
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var responseString = await response.Content.ReadAsStringAsync();
-            var responseObject = JsonSerializer.Deserialize<OllamaResponse>(responseString);
+            var response = await client.PostAsync(ollamaUrl, content);
 
-            if (responseObject == null || string.IsNullOrEmpty(responseObject.Response))
+            if (response.IsSuccessStatusCode)
             {
-                throw new Exception("Invalid response from Ollama API.");
+                var responseString = await response.Content.ReadAsStringAsync();
+                var responseObject = JsonSerializer.Deserialize<OllamaResponse>(responseString);
+
+                if (responseObject == null || string.IsNullOrEmpty(responseObject.Response))
+                {
+                    throw new InvalidOperationException("Invalid response from Ollama API: Response is null or empty.");
+                }
+
+                return responseObject.Response;
             }
 
-            return responseObject.Response;
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"Ollama API Error: {response.StatusCode}, Details: {errorContent}");
         }
-
-        var errorContent = await response.Content.ReadAsStringAsync();
-        throw new Exception($"Ollama API Error: {response.StatusCode}, Details: {errorContent}");
+        catch (Exception ex)
+        {
+            throw new Exception("An unexpected error occurred while generating a response from Ollama.", ex);
+        }
     }
 
     private class OllamaResponse

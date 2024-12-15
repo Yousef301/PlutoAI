@@ -1,11 +1,14 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using AutoMapper;
 using Pluto.Application.DTOs.Messages;
 using Pluto.Application.Services.EntityServices.Interfaces;
 using Pluto.Application.Services.SharedServices.Interfaces;
 using Pluto.DAL.Entities;
+using Pluto.DAL.Exceptions.Base;
 using Pluto.DAL.Interfaces;
 using Pluto.DAL.Interfaces.Repositories;
+using Serilog;
 
 namespace Pluto.Application.Services.EntityServices.Implementations;
 
@@ -37,14 +40,11 @@ public class MessageService : IMessageService
         var session = await _sessionRepository.GetAsync(request.SessionId);
 
         if (session == null)
-        {
-            throw new Exception("Session not found");
-        }
+            throw new NotFoundException("Session", request.SessionId);
+
 
         if (session.UserId != request.UserId)
-        {
-            throw new Exception("Unauthorized");
-        }
+            throw new UnauthorizedAccessException("You are not authorized to send messages to this session.");
 
         var messages = await _messageRepository.GetSessionMessagesAsync(request.SessionId);
 
@@ -56,14 +56,10 @@ public class MessageService : IMessageService
         var session = await _sessionRepository.GetAsync(request.SessionId);
 
         if (session == null)
-        {
-            throw new Exception("Session not found");
-        }
+            throw new NotFoundException("Session", request.SessionId);
 
         if (session.UserId != request.UserId)
-        {
-            throw new Exception("Unauthorized");
-        }
+            throw new UnauthorizedAccessException("You are not authorized to send messages to this session.");
 
         await _unitOfWork.BeginTransactionAsync();
 
@@ -74,7 +70,13 @@ public class MessageService : IMessageService
 
             var contextPrompt = BuildContextualPrompt(recentMessages, request.Query);
 
+            var stopwatch = Stopwatch.StartNew();
+            Log.Information("Starting to generate response...");
+
             var response = await _ollamaService.GenerateResponseAsync(contextPrompt);
+
+            stopwatch.Stop();
+            Log.Information("GenerateResponseAsync took {ElapsedMilliseconds} seconds", stopwatch.Elapsed.TotalSeconds);
 
             var message = _mapper.Map<Message>(request);
 
@@ -89,6 +91,12 @@ public class MessageService : IMessageService
             await _unitOfWork.CommitTransactionAsync();
 
             return _mapper.Map<CreateMessageResponse>(message);
+        }
+        catch (HttpRequestException ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+
+            throw new ServiceException("Failed to generate a response. Please try again later.", ex);
         }
         catch
         {
