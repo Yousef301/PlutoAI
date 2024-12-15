@@ -2,6 +2,7 @@
 using Pluto.Application.DTOs.Sessions;
 using Pluto.Application.Services.EntityServices.Interfaces;
 using Pluto.DAL.Entities;
+using Pluto.DAL.Exceptions.Base;
 using Pluto.DAL.Interfaces.Repositories;
 
 namespace Pluto.Application.Services.EntityServices.Implementations;
@@ -26,14 +27,12 @@ public class SessionService : ISessionService
     public async Task<IEnumerable<GetSessionsResponse>> GetUserSessionsAsync(int userId)
     {
         if (!await _userRepository.ExistsAsync(u => u.Id == userId))
-            throw new ArgumentException("User not found");
+            throw new NotFoundException("User", userId);
 
         var sessions = await _sessionRepository
             .GetUserSessionsAsync(userId, includeMessages: true);
 
-        var _sessions = _mapper.Map<IEnumerable<GetSessionsResponse>>(sessions);
-
-        return _sessions;
+        return _mapper.Map<IEnumerable<GetSessionsResponse>>(sessions);
     }
 
     public async Task<CreateSessionResponse> CreateAsync(CreateSessionRequest session)
@@ -50,10 +49,10 @@ public class SessionService : ISessionService
         var sessionToUpdate = await _sessionRepository.GetAsync(session.Id);
 
         if (sessionToUpdate == null)
-            throw new ArgumentException("Session not found");
+            throw new NotFoundException("Session", session.Id);
 
         if (sessionToUpdate.UserId != session.UserId)
-            throw new ArgumentException("Unauthorized");
+            throw new UnauthorizedAccessException("You are not allowed to update this session.");
 
         sessionToUpdate.Title = session.Title;
 

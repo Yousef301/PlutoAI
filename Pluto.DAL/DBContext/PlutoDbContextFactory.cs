@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Pluto.DAL.Exceptions;
 
 namespace Pluto.DAL.DBContext;
 
@@ -9,7 +10,8 @@ public class PlutoDbContextFactory : IDesignTimeDbContextFactory<PlutoDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<PlutoDbContext>();
 
-        var connectionString = Environment.GetEnvironmentVariable("PlutoAI");
+        var connectionString = Environment.GetEnvironmentVariable("PlutoAI") ??
+                               throw new InvalidConfigurationException("Connection string configuration is missing.");
 
         optionsBuilder.UseSqlServer(connectionString);
 

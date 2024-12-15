@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Pluto.API.Helpers.Interfaces;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces.Auth;
-using Pluto.Application.Services.SharedServices.Interfaces;
+using Pluto.DAL.Exceptions;
 
 namespace Pluto.API.Controllers;
 
@@ -95,7 +94,10 @@ public class AuthController : ControllerBase
     {
         await _userService.ConfirmEmail(token);
 
-        return Redirect(_configuration["AccountActivatedUrl"]);
+        var accountActivatedUrl = _configuration["AccountActivatedUrl"] ?? throw new
+            InvalidConfigurationException("Account activated URL is not configured");
+
+        return Redirect(accountActivatedUrl);
     }
 
     [HttpPost("forgot-password")]
