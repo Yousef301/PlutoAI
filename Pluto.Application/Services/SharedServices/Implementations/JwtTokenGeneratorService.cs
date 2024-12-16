@@ -44,11 +44,12 @@ public class JwtTokenGeneratorService : ITokenGeneratorService
 
         var refreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = refreshToken;
-
         if (populateExp)
+        {
+            user.RefreshToken = refreshToken;
             user.RefreshTokenExpiration = ((DateTimeOffset)DateTime.UtcNow.AddDays(7))
                 .ToUnixTimeSeconds();
+        }
 
         await _userRepository.UpdateAsync(user);
 
@@ -68,6 +69,19 @@ public class JwtTokenGeneratorService : ITokenGeneratorService
 
         return await GenerateToken(user, false);
     }
+
+    public Task<TokenClaims> GetTokenClaims(string token)
+    {
+        var principal = GetPrincipalFromExpiredToken(token);
+
+        return Task.FromResult(new TokenClaims(
+            principal.Claims.First(x => x.Type == "id").Value,
+            principal.Claims.First(x => x.Type.Contains("email", StringComparison.OrdinalIgnoreCase)).Value,
+            principal.Claims.First(x => x.Type == "fullname").Value,
+            principal.Claims.First(x => x.Type == "exp").Value
+        ));
+    }
+
 
     private SigningCredentials GetSigningCredentials()
     {

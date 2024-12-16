@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Mvc;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces.Auth;
 using Pluto.Application.Services.SharedServices.Interfaces;
@@ -28,15 +29,29 @@ public class AuthController : ControllerBase
         _tokenGeneratorService = tokenGeneratorService;
     }
 
-    [HttpPost("signin")]
+    [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] SignInRequest request)
     {
         var response = await _authenticationService.SignInAsync(request);
 
-        return Ok(response);
+        if (response.EmailConfirmed)
+        {
+            _authenticationService
+                .SetTokenInsideCookie(new TokenDto(response.AccessToken, response.RefreshToken), HttpContext);
+        }
+
+        return Ok(new { EmailConfirmed = response.EmailConfirmed });
     }
 
-    [HttpPost("signup")]
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        _authenticationService.RemoveCookies(HttpContext);
+
+        return Ok();
+    }
+
+    [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] SignUpRequest request)
     {
         var response = await _authenticationService.SignUpAsync(request);
@@ -44,7 +59,7 @@ public class AuthController : ControllerBase
         return Created(string.Empty, new { response.Email });
     }
 
-    [HttpGet("google-signin")]
+    [HttpGet("google-login")]
     public IActionResult RedirectToGoogle()
     {
         var redirectUrl = _googleAuthService.GetGoogleOAuthUrl();
@@ -64,8 +79,8 @@ public class AuthController : ControllerBase
         ", "text/html");
         }
 
-        var token = await _googleAuthService.HandleGoogleCallbackAsync(code);
-        if (token == null)
+        var tokens = await _googleAuthService.HandleGoogleCallbackAsync(code);
+        if (tokens.AccessToken == null)
         {
             return Content(@"
             <script>
@@ -75,11 +90,12 @@ public class AuthController : ControllerBase
         ", "text/html");
         }
 
-        Console.WriteLine(token);
+        _authenticationService
+            .SetTokenInsideCookie(new TokenDto(tokens.AccessToken, tokens.RefreshToken), HttpContext);
 
-        return Content($@"
+        return Content(@"
         <script>
-            window.opener.postMessage({{ type: 'google-auth-success', token: '{token}' }}, '*');
+            window.opener.postMessage({ type: 'google-auth-success' }, '*');
             window.close();
         </script>
     ", "text/html");
@@ -93,7 +109,7 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("confirm-email")]
+    [HttpGet("confirm-email")]
     public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
     {
         await _authenticationService.ConfirmEmail(token);
@@ -121,10 +137,38 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh")]
-    public async Task<IActionResult> RefreshToken([FromBody] TokenDto token)
+    public async Task<IActionResult> RefreshToken()
     {
-        var newToken = await _tokenGeneratorService.RefreshTokenAsync(token);
+        HttpContext.Request.Cookies.TryGetValue("accessToken", out var accessToken);
+        HttpContext.Request.Cookies.TryGetValue("refreshToken", out var refreshToken);
 
-        return Ok(newToken);
+        await _tokenGeneratorService
+            .RefreshTokenAsync(new TokenDto(accessToken, refreshToken));
+
+        _authenticationService
+            .SetTokenInsideCookie(new TokenDto(accessToken, refreshToken), HttpContext);
+
+        return Ok();
+    }
+
+    [HttpGet("verify")]
+    public async Task<IActionResult> Verify()
+    {
+        var token = Request.Cookies["accessToken"];
+        if (string.IsNullOrEmpty(token))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var userInfo = await _tokenGeneratorService.GetTokenClaims(token);
+
+            return Ok(userInfo);
+        }
+        catch
+        {
+            return Unauthorized();
+        }
     }
 }

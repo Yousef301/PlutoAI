@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces.Auth;
@@ -214,5 +215,45 @@ public class AuthenticationService : IAuthenticationService
             await _unitOfWork.RollbackTransactionAsync();
             throw;
         }
+    }
+
+    public void SetTokenInsideCookie(TokenDto token, HttpContext httpContext)
+    {
+        httpContext.Response.Cookies.Append("accessToken", token.AccessToken,
+            new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddHours(1),
+                HttpOnly = true,
+                IsEssential = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            });
+
+        httpContext.Response.Cookies.Append("refreshToken", token.RefreshToken,
+            new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
+                HttpOnly = true,
+                IsEssential = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            });
+    }
+
+    public void RemoveCookies(HttpContext httpContext)
+    {
+        httpContext.Response.Cookies.Delete("accessToken", new CookieOptions
+        {
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.None
+        });
+
+        httpContext.Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.None
+        });
     }
 }

@@ -20,7 +20,16 @@ public static class ApiConfiguration
             .AddAuthenticationConfigurations(configuration)
             .AddHttpContextAccessor()
             .AddSerilogConfigurations(configuration)
-            .AddScoped<IUserContext, UserContext>();
+            .AddScoped<IUserContext, UserContext>()
+            .ConfigureApplicationCookie(options =>
+                {
+                    options.Cookie.SameSite = SameSiteMode.None;
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.Cookie.HttpOnly = true;
+                    options.Cookie.Domain = null;
+                    options.Cookie.Path = "/";
+                }
+            );
 
         return services;
     }
@@ -61,6 +70,18 @@ public static class ApiConfiguration
                     IssuerSigningKey =
                         new SymmetricSecurityKey(Convert.FromBase64String(secretKey)),
                     ClockSkew = TimeSpan.Zero
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        context.Request.Cookies.TryGetValue("accessToken", out var accessToken);
+                        if (!string.IsNullOrEmpty(accessToken))
+                            context.Token = accessToken;
+
+                        return Task.CompletedTask;
+                    }
                 };
             });
 
