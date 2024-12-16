@@ -1,8 +1,10 @@
-﻿using Pluto.DAL.Entities;
+﻿using Pluto.Application.DTOs.Auth;
+using Pluto.DAL.Entities;
 
 namespace Pluto.Application.Services.SharedServices.Interfaces;
 
 public interface ITokenGeneratorService
 {
-    public string GenerateToken(User user);
+    public Task<TokenDto> GenerateToken(User user, bool populateExp);
+    public Task<TokenDto> RefreshTokenAsync(TokenDto token);
 }

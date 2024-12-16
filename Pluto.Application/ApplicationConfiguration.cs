@@ -18,9 +18,9 @@ public static class ApplicationConfiguration
         services.AddDataAccessInfrastructure(configuration);
         services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-        services.AddSingleton<ITokenGeneratorService, JwtTokenGeneratorService>();
         services.AddSingleton<IPasswordService, BCryptPasswordService>();
-        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ITokenGeneratorService, JwtTokenGeneratorService>();
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IMessageService, MessageService>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();

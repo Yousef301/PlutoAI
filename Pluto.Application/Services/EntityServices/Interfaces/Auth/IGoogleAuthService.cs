@@ -6,5 +6,5 @@ namespace Pluto.Application.Services.EntityServices.Interfaces.Auth;
 public interface IGoogleAuthService
 {
     string GetGoogleOAuthUrl();
-    Task<string?> HandleGoogleCallbackAsync(string code);
+    Task<TokenDto> HandleGoogleCallbackAsync(string code);
 }

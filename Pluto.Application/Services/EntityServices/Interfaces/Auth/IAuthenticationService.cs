@@ -2,7 +2,7 @@
 
 namespace Pluto.Application.Services.EntityServices.Interfaces.Auth;
 
-public interface IUserService
+public interface IAuthenticationService
 {
     public Task<SignInResponse> SignInAsync(SignInRequest request);
     public Task<SignUpResponse> SignUpAsync(SignUpRequest request);

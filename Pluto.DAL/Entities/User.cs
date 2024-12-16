@@ -8,6 +8,9 @@ public class User : BaseEntity
     public bool EmailConfirmed { get; set; } = false;
     public Guid? EmailConfirmationToken { get; set; }
     public long? EmailConfirmationTokenExpiration { get; set; }
+
+    public string? RefreshToken { get; set; }
+    public long? RefreshTokenExpiration { get; set; }
     public ICollection<Session> Sessions { get; set; }
     public ICollection<PasswordResetRequest> PasswordResetRequests { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Json;
 using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
+using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces.Auth;
 using Pluto.Application.Services.SharedServices.Interfaces;
 using Pluto.DAL.Exceptions;
@@ -40,7 +41,7 @@ public class GoogleAuthService : IGoogleAuthService
             $"https://accounts.google.com/o/oauth2/auth?client_id={clientId}&redirect_uri={redirectUri}&response_type=code&scope=openid%20email%20profile";
     }
 
-    public async Task<string?> HandleGoogleCallbackAsync(string code)
+    public async Task<TokenDto> HandleGoogleCallbackAsync(string code)
     {
         if (string.IsNullOrEmpty(code))
             throw new InvalidRequestException("Authorization code is missing or invalid.");
@@ -55,7 +56,7 @@ public class GoogleAuthService : IGoogleAuthService
 
         var user = await _userRepository.FindOrCreateUserAsync(payload);
 
-        return _tokenGeneratorService.GenerateToken(user);
+        return await _tokenGeneratorService.GenerateToken(user, true);
     }
 
     private async Task<string?> ExchangeCodeForTokensAsync(string code)

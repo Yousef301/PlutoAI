@@ -12,7 +12,7 @@ using Pluto.DAL.Interfaces.Repositories;
 
 namespace Pluto.Application.Services.EntityServices.Implementations.Auth;
 
-public class UserService : IUserService
+public class AuthenticationService : IAuthenticationService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordService _passwordService;
@@ -23,7 +23,7 @@ public class UserService : IUserService
     private readonly IConfiguration _configuration;
     private readonly IPasswordResetRequestRepository _passwordResetRequestRepository;
 
-    public UserService(
+    public AuthenticationService(
         IUserRepository userRepository,
         IPasswordService passwordService,
         ITokenGeneratorService tokenGeneratorService,
@@ -50,10 +50,9 @@ public class UserService : IUserService
         if (user == null || !_passwordService.ValidatePassword(request.Password, user.Password))
             throw new InvalidCredentialsException("Invalid email or password.");
 
-        if (!user.EmailConfirmed)
-            throw new EmailNotConfirmedException("Email address is not confirmed.");
+        var tokens = await _tokenGeneratorService.GenerateToken(user, true);
 
-        return new SignInResponse(_tokenGeneratorService.GenerateToken(user), user.EmailConfirmed);
+        return new SignInResponse(tokens.AccessToken, tokens.RefreshToken, user.EmailConfirmed);
     }
 
     public async Task<SignUpResponse> SignUpAsync(SignUpRequest request)
