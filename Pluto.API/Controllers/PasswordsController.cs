@@ -5,12 +5,12 @@ using Pluto.Application.Services;
 namespace Pluto.API.Controllers;
 
 [ApiController]
-[Route("api/password")]
-public class PasswordController : ControllerBase
+[Route("api/passwords")]
+public class PasswordsController : ControllerBase
 {
     private readonly IServiceManager _serviceManager;
 
-    public PasswordController(IServiceManager serviceManager)
+    public PasswordsController(IServiceManager serviceManager)
     {
         _serviceManager = serviceManager;
     }

@@ -20,7 +20,8 @@ public class SmtpEmailService : IEmailService
     {
         _configuration = configuration;
 
-        _mail = _configuration["Email:Email"] ?? throw new InvalidConfigurationException("Email configuration is missing.");
+        _mail = _configuration["Email:Email"] ??
+                throw new InvalidConfigurationException("Email configuration is missing.");
         _password = _configuration["Email:Password"] ??
                     throw new InvalidConfigurationException("Email password configuration is missing.");
     }
@@ -74,10 +75,10 @@ public class SmtpEmailService : IEmailService
 
     private async Task<string> GetEmailConfirmationBody(string email, string link)
     {
-        var emailTemplatePath = _configuration["EmailTemplatePath"];
+        var emailTemplatePath = GetTemplatePath(Template.EmailConfirmation);
 
-        if (string.IsNullOrEmpty(emailTemplatePath))
-            throw new InvalidConfigurationException("Email template path configuration is missing.");
+        if (!File.Exists(emailTemplatePath))
+            throw new FileNotFoundException("Email template file not found.", emailTemplatePath);
 
         try
         {
@@ -97,10 +98,10 @@ public class SmtpEmailService : IEmailService
 
     private async Task<string> GetResetPasswordBody(string link)
     {
-        var resetTemplatePath = _configuration["ResetPasswordTemplatePath"];
+        var resetTemplatePath = GetTemplatePath(Template.PasswordReset);
 
-        if (string.IsNullOrEmpty(resetTemplatePath))
-            throw new InvalidConfigurationException("Reset password template path configuration is missing.");
+        if (!File.Exists(resetTemplatePath))
+            throw new FileNotFoundException("Password reset template file not found.", resetTemplatePath);
 
         try
         {
@@ -114,5 +115,33 @@ public class SmtpEmailService : IEmailService
             throw new EmailTemplateException("Error reading the password reset template file.",
                 ioEx);
         }
+    }
+
+    private string GetTemplatePath(Template template,
+        [System.Runtime.CompilerServices.CallerFilePath]
+        string sourceFilePath = "")
+    {
+        var classDirectory = Path.GetDirectoryName(sourceFilePath);
+
+        var templatesDirectory = Path
+            .GetFullPath(Path.Combine(classDirectory, @"..", @"..", @"..", "Templates"));
+
+        switch (template)
+        {
+            case Template.EmailConfirmation:
+                var emailTemplateName = _configuration["EmailConfirmationTemplateName"] ??
+                                        throw new InvalidConfigurationException(
+                                            "Email confirmation template name is missing.");
+                templatesDirectory = Path.Combine(templatesDirectory, emailTemplateName);
+                break;
+            case Template.PasswordReset:
+                var passwordTemplateName = _configuration["ResetPasswordTemplateName"] ??
+                                           throw new InvalidConfigurationException(
+                                               "Password reset template name is missing.");
+                templatesDirectory = Path.Combine(templatesDirectory, passwordTemplateName);
+                break;
+        }
+
+        return templatesDirectory;
     }
 }
