@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Pluto.API.Helpers.Interfaces;
 using Pluto.Application.DTOs.Sessions;
+using Pluto.Application.Services;
 using Pluto.Application.Services.EntityServices.Interfaces;
 
 namespace Pluto.API.Controllers;
@@ -11,22 +12,22 @@ namespace Pluto.API.Controllers;
 [Route("api/sessions")]
 public class SessionsController : ControllerBase
 {
-    private readonly ISessionService _sessionService;
+    private readonly IServiceManager _serviceManager;
     private readonly IUserContext _userContext;
 
     public SessionsController(
-        ISessionService sessionService,
-        IUserContext userContext
+        IUserContext userContext,
+        IServiceManager serviceManager
     )
     {
-        _sessionService = sessionService;
         _userContext = userContext;
+        _serviceManager = serviceManager;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetUserSessionsAsync()
     {
-        var sessions = await _sessionService
+        var sessions = await _serviceManager.SessionService
             .GetUserSessionsAsync(_userContext.Id);
 
         return Ok(sessions);
@@ -35,7 +36,7 @@ public class SessionsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateSessionAsync()
     {
-        var createdSession = await _sessionService
+        var createdSession = await _serviceManager.SessionService
             .CreateAsync(new CreateSessionRequest(_userContext.Id));
 
         return Created(string.Empty, new { createdSession.Id });
@@ -50,7 +51,8 @@ public class SessionsController : ControllerBase
         request.UserId = _userContext.Id;
         request.Id = id;
 
-        var updatedSession = await _sessionService.UpdateAsync(request);
+        var updatedSession = await _serviceManager.SessionService
+            .UpdateAsync(request);
 
         return Ok(updatedSession);
     }

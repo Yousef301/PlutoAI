@@ -9,27 +9,24 @@ namespace Pluto.Application.Services.EntityServices.Implementations;
 
 public class SessionService : ISessionService
 {
-    private readonly ISessionRepository _sessionRepository;
-    private readonly IUserRepository _userRepository;
+    private readonly IRepositoryManager _repositoryManager;
     private readonly IMapper _mapper;
 
     public SessionService(
-        ISessionRepository sessionRepository,
         IMapper mapper,
-        IUserRepository userRepository
+        IRepositoryManager repositoryManager
     )
     {
-        _sessionRepository = sessionRepository;
         _mapper = mapper;
-        _userRepository = userRepository;
+        _repositoryManager = repositoryManager;
     }
 
     public async Task<IEnumerable<GetSessionsResponse>> GetUserSessionsAsync(int userId)
     {
-        if (!await _userRepository.ExistsAsync(u => u.Id == userId))
+        if (!await _repositoryManager.UserRepository.ExistsAsync(u => u.Id == userId))
             throw new NotFoundException("User", userId);
 
-        var sessions = await _sessionRepository
+        var sessions = await _repositoryManager.SessionRepository
             .GetUserSessionsAsync(userId, includeMessages: true);
 
         return _mapper.Map<IEnumerable<GetSessionsResponse>>(sessions);
@@ -39,14 +36,14 @@ public class SessionService : ISessionService
     {
         var createdSession = _mapper.Map<Session>(session);
 
-        await _sessionRepository.CreateAsync(createdSession);
+        await _repositoryManager.SessionRepository.CreateAsync(createdSession);
 
         return _mapper.Map<CreateSessionResponse>(createdSession);
     }
 
     public async Task<UpdateSessionTitleResponse> UpdateAsync(UpdateSessionTitleRequest session)
     {
-        var sessionToUpdate = await _sessionRepository.GetAsync(session.Id);
+        var sessionToUpdate = await _repositoryManager.SessionRepository.GetAsync(session.Id);
 
         if (sessionToUpdate == null)
             throw new NotFoundException("Session", session.Id);
@@ -56,7 +53,7 @@ public class SessionService : ISessionService
 
         sessionToUpdate.Title = session.Title;
 
-        await _sessionRepository.Update(sessionToUpdate);
+        await _repositoryManager.SessionRepository.Update(sessionToUpdate);
 
         return _mapper.Map<UpdateSessionTitleResponse>(sessionToUpdate);
     }

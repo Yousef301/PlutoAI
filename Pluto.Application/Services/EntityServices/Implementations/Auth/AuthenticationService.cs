@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Pluto.Application.DTOs.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces.Auth;
-using Pluto.Application.Services.SharedServices.Interfaces;
 using Pluto.DAL.Entities;
 using Pluto.DAL.Enums;
 using Pluto.DAL.Exceptions;
@@ -15,43 +14,36 @@ namespace Pluto.Application.Services.EntityServices.Implementations.Auth;
 
 public class AuthenticationService : IAuthenticationService
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IPasswordService _passwordService;
-    private readonly ITokenGeneratorService _tokenGeneratorService;
+    private readonly IRepositoryManager _repositoryManager;
+    private readonly IServiceManager _serviceManager;
     private readonly IMapper _mapper;
-    private readonly IEmailService _emailService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
-    private readonly IPasswordResetRequestRepository _passwordResetRequestRepository;
 
     public AuthenticationService(
-        IUserRepository userRepository,
-        IPasswordService passwordService,
-        ITokenGeneratorService tokenGeneratorService,
         IMapper mapper,
-        IEmailService emailService,
         IUnitOfWork unitOfWork,
         IConfiguration configuration,
-        IPasswordResetRequestRepository passwordResetRequestRepository
+        IRepositoryManager repositoryManager,
+        IServiceManager serviceManager
     )
     {
-        _userRepository = userRepository;
-        _passwordService = passwordService;
-        _tokenGeneratorService = tokenGeneratorService;
         _mapper = mapper;
-        _emailService = emailService;
         _unitOfWork = unitOfWork;
         _configuration = configuration;
-        _passwordResetRequestRepository = passwordResetRequestRepository;
+        _repositoryManager = repositoryManager;
+        _serviceManager = serviceManager;
     }
 
     public async Task<SignInResponse> SignInAsync(SignInRequest request)
     {
-        var user = await _userRepository.GetByEmailAsync(request.Email);
-        if (user == null || !_passwordService.ValidatePassword(request.Password, user.Password))
+        var user = await _repositoryManager.UserRepository.GetByEmailAsync(request.Email);
+        if (user == null || !_serviceManager.PasswordEncryptionService
+                .ValidatePassword(request.Password, user.Password))
             throw new InvalidCredentialsException("Invalid email or password.");
 
-        var tokens = await _tokenGeneratorService.GenerateToken(user, true);
+        var tokens = await _serviceManager.TokenGeneratorService
+            .GenerateToken(user, true);
 
         return new SignInResponse(tokens.AccessToken, tokens.RefreshToken, user.EmailConfirmed);
     }
@@ -60,14 +52,15 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            if (await _userRepository.ExistsAsync(u => u.Email == request.Email))
+            if (await _repositoryManager.UserRepository.ExistsAsync(u => u.Email == request.Email))
                 throw new UserAlreadyExistsException("User with this email already exists.");
 
             var user = _mapper.Map<User>(request);
 
-            user.Password = _passwordService.HashPassword(request.Password);
+            user.Password = _serviceManager.PasswordEncryptionService
+                .HashPassword(request.Password);
 
-            var createdUser = await _userRepository.CreateAsync(user);
+            var createdUser = await _repositoryManager.UserRepository.CreateAsync(user);
 
             return _mapper.Map<SignUpResponse>(createdUser);
         }
@@ -85,7 +78,7 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            var user = await _userRepository.GetByEmailAsync(request.Email)
+            var user = await _repositoryManager.UserRepository.GetByEmailAsync(request.Email)
                        ?? throw new NotFoundException("User", "email", request.Email);
 
             await _unitOfWork.BeginTransactionAsync();
@@ -96,11 +89,12 @@ public class AuthenticationService : IAuthenticationService
             user.EmailConfirmationTokenExpiration =
                 ((DateTimeOffset)DateTime.UtcNow.AddMinutes(10)).ToUnixTimeSeconds();
 
-            await _userRepository.UpdateAsync(user);
+            await _repositoryManager.UserRepository.UpdateAsync(user);
 
-            var confirmationLink = $"{baseUrl}/confirm-email?token={user.EmailConfirmationToken}";
-            await _emailService.SendEmailAsync(request.Email, "Confirmation Email",
-                new EmailConfirmationBody(confirmationLink), Template.EmailConfirmation);
+            var confirmationLink = $"{baseUrl}/auth/confirm-email?token={user.EmailConfirmationToken}";
+            await _serviceManager.EmailService
+                .SendEmailAsync(request.Email, "Confirmation Email",
+                    new EmailConfirmationBody(confirmationLink), Template.EmailConfirmation);
 
             await _unitOfWork.CommitTransactionAsync();
         }
@@ -121,14 +115,14 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            var user = await _userRepository.GetByConfirmationTokenAsync(Guid.Parse(token))
+            var user = await _repositoryManager.UserRepository.GetByConfirmationTokenAsync(Guid.Parse(token))
                        ?? throw new InvalidTokenException("The provided token is invalid.");
 
             user.EmailConfirmed = true;
             user.EmailConfirmationToken = null;
             user.EmailConfirmationTokenExpiration = null;
 
-            await _userRepository.UpdateAsync(user);
+            await _repositoryManager.UserRepository.UpdateAsync(user);
         }
         catch (InvalidTokenException ex)
         {
@@ -140,82 +134,6 @@ public class AuthenticationService : IAuthenticationService
         }
     }
 
-
-    public async Task SendPasswordResetEmail(SendPasswordResetRequest request)
-    {
-        try
-        {
-            var user = await _userRepository.GetByEmailAsync(request.Email)
-                       ?? throw new NotFoundException("User", "email", request.Email);
-
-            await _unitOfWork.BeginTransactionAsync();
-
-            var baseUrl = _configuration["ResetPassword"];
-
-            var passwordResetRequest = new PasswordResetRequest
-            {
-                Token = Guid.NewGuid(),
-                ExpiryDate = ((DateTimeOffset)DateTime.UtcNow.AddMinutes(10)).ToUnixTimeSeconds(),
-                UserId = user.Id
-            };
-
-            await _passwordResetRequestRepository.CreateAsync(passwordResetRequest);
-
-            var resetLink = $"{baseUrl}?token={passwordResetRequest.Token}";
-            await _emailService.SendEmailAsync(request.Email, "Password Reset",
-                new EmailConfirmationBody(resetLink), Template.PasswordReset);
-
-            await _unitOfWork.CommitTransactionAsync();
-        }
-        catch (NotFoundException ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
-        catch (Exception ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
-    }
-
-
-    public async Task ResetPassword(ResetPasswordRequest request)
-    {
-        try
-        {
-            var passwordResetRequest = await _passwordResetRequestRepository
-                                           .GetByTokenAsync(Guid.Parse(request.Token))
-                                       ?? throw new InvalidTokenException("Invalid token.");
-
-            var user = await _userRepository.GetAsync(passwordResetRequest.UserId)
-                       ?? throw new NotFoundException("User", "id", passwordResetRequest.UserId.ToString());
-
-            await _unitOfWork.BeginTransactionAsync();
-
-            user.Password = _passwordService.HashPassword(request.Password);
-            await _userRepository.UpdateAsync(user);
-
-            passwordResetRequest.Used = true;
-            await _passwordResetRequestRepository.UpdateAsync(passwordResetRequest);
-
-            await _unitOfWork.CommitTransactionAsync();
-        }
-        catch (InvalidTokenException ex)
-        {
-            throw;
-        }
-        catch (NotFoundException ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
-        catch (Exception ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
-    }
 
     public void SetTokenInsideCookie(TokenDto token, HttpContext httpContext)
     {

@@ -3,7 +3,7 @@
 
 namespace Pluto.Application.Services.SharedServices.Implementations;
 
-public class BCryptPasswordService : IPasswordService
+public class BCryptPasswordService : IPasswordEncryptionService
 {
     public string HashPassword(string plainPassword)
     {

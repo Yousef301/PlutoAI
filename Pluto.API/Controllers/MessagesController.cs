@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Pluto.API.Helpers.Interfaces;
 using Pluto.Application.DTOs.Messages;
+using Pluto.Application.Services;
 using Pluto.Application.Services.EntityServices.Interfaces;
 
 namespace Pluto.API.Controllers;
@@ -11,16 +12,16 @@ namespace Pluto.API.Controllers;
 [Route("api/sessions/{sessionId:int}/messages")]
 public class MessagesController : ControllerBase
 {
-    private readonly IMessageService _messageService;
+    private readonly IServiceManager _serviceManager;
     private readonly IUserContext _userContext;
 
     public MessagesController(
-        IMessageService messageService,
-        IUserContext userContext
+        IUserContext userContext,
+        IServiceManager serviceManager
     )
     {
-        _messageService = messageService;
         _userContext = userContext;
+        _serviceManager = serviceManager;
     }
 
     [HttpGet]
@@ -32,7 +33,8 @@ public class MessagesController : ControllerBase
             UserId = _userContext.Id
         };
 
-        var messages = await _messageService.GetSessionMessagesAsync(request);
+        var messages = await _serviceManager.MessageService
+            .GetSessionMessagesAsync(request);
 
         return Ok(messages);
     }
@@ -46,7 +48,7 @@ public class MessagesController : ControllerBase
         request.SessionId = sessionId;
         request.UserId = _userContext.Id;
 
-        var message = await _messageService.SendMessageAsync(request);
+        var message = await _serviceManager.MessageService.SendMessageAsync(request);
 
         return Created(string.Empty, message);
     }

@@ -14,7 +14,7 @@ namespace Pluto.Application.Services.SharedServices.Implementations;
 
 public class JwtTokenGeneratorService : ITokenGeneratorService
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IRepositoryManager _repositoryManager;
     private readonly IConfiguration _configuration;
     private readonly string _secretKey;
     private readonly string _issuer;
@@ -22,17 +22,17 @@ public class JwtTokenGeneratorService : ITokenGeneratorService
 
     public JwtTokenGeneratorService(
         IConfiguration configuration,
-        IUserRepository userRepository
+        IRepositoryManager repositoryManager
     )
     {
         _configuration = configuration;
-        _userRepository = userRepository;
+        _repositoryManager = repositoryManager;
 
-        _secretKey = _configuration["SecretKey"] ??
+        _secretKey = _configuration["Jwt:SecretKey"] ??
                      throw new InvalidConfigurationException("SecretKey is not configured");
-        _issuer = _configuration["Issuer"] ??
+        _issuer = _configuration["Jwt:Issuer"] ??
                   throw new InvalidConfigurationException("Issuer is not configured");
-        _audience = _configuration["Audience"] ??
+        _audience = _configuration["Jwt:Audience"] ??
                     throw new InvalidConfigurationException("Audience is not configured");
     }
 
@@ -51,7 +51,7 @@ public class JwtTokenGeneratorService : ITokenGeneratorService
                 .ToUnixTimeSeconds();
         }
 
-        await _userRepository.UpdateAsync(user);
+        await _repositoryManager.UserRepository.UpdateAsync(user);
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(jwtToken);
 
@@ -61,7 +61,8 @@ public class JwtTokenGeneratorService : ITokenGeneratorService
     public async Task<TokenDto> RefreshTokenAsync(TokenDto token)
     {
         var principal = GetPrincipalFromExpiredToken(token.AccessToken);
-        var user = await _userRepository.GetAsync(Int32.Parse(principal.Claims.First(x => x.Type == "id").Value));
+        var user = await _repositoryManager.UserRepository
+            .GetAsync(Int32.Parse(principal.Claims.First(x => x.Type == "id").Value));
 
         if (user == null || user.RefreshToken != token.RefreshToken ||
             user.RefreshTokenExpiration < DateTimeOffset.UtcNow.ToUnixTimeSeconds())

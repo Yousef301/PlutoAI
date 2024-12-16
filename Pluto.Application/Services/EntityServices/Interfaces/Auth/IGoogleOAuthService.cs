@@ -3,8 +3,8 @@ using Pluto.Application.DTOs.Auth;
 
 namespace Pluto.Application.Services.EntityServices.Interfaces.Auth;
 
-public interface IGoogleAuthService
+public interface IGoogleOAuthService
 {
-    string GetGoogleOAuthUrl();
-    Task<TokenDto> HandleGoogleCallbackAsync(string code);
+    string GetOAuthUrl();
+    Task<TokenDto> HandleCallbackAsync(string code);
 }

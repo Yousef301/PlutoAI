@@ -58,16 +58,27 @@ public class UserRepository : IUserRepository
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
 
-        if (user != null) return user;
-        user = new User
+        if (user == null)
         {
-            FullName = payload.Name,
-            Email = payload.Email,
-            Password = null,
-            EmailConfirmed = true
-        };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+            user = new User
+            {
+                FullName = payload.Name,
+                Email = payload.Email,
+                Password = null,
+                EmailConfirmed = true
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+        }
+        else if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            user.EmailConfirmationToken = null;
+            user.EmailConfirmationTokenExpiration = null;
+
+            await _context.SaveChangesAsync();
+        }
 
         return user;
     }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Pluto.Application.Services;
 using Pluto.Application.Services.EntityServices.Implementations;
 using Pluto.Application.Services.EntityServices.Implementations.Auth;
 using Pluto.Application.Services.EntityServices.Interfaces;
@@ -18,14 +19,16 @@ public static class ApplicationConfiguration
         services.AddDataAccessInfrastructure(configuration);
         services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-        services.AddSingleton<IPasswordService, BCryptPasswordService>();
+        services.AddSingleton<IPasswordEncryptionService, BCryptPasswordService>();
         services.AddScoped<ITokenGeneratorService, JwtTokenGeneratorService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IMessageService, MessageService>();
-        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<IGoogleOAuthService, GoogleOAuthService>();
         services.AddScoped<IModelService, OllamaService>();
         services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddScoped<IServiceManager, ServiceManager>();
+        services.AddScoped<IPasswordService, PasswordService>();
         services.AddHttpClient();
 
         return services;

@@ -20,8 +20,8 @@ public class SmtpEmailService : IEmailService
     {
         _configuration = configuration;
 
-        _mail = _configuration["Email"] ?? throw new InvalidConfigurationException("Email configuration is missing.");
-        _password = _configuration["EmailPassword"] ??
+        _mail = _configuration["Email:Email"] ?? throw new InvalidConfigurationException("Email configuration is missing.");
+        _password = _configuration["Email:Password"] ??
                     throw new InvalidConfigurationException("Email password configuration is missing.");
     }
 

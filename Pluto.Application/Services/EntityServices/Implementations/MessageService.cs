@@ -14,30 +14,27 @@ namespace Pluto.Application.Services.EntityServices.Implementations;
 
 public class MessageService : IMessageService
 {
-    private readonly ISessionRepository _sessionRepository;
-    private readonly IMessageRepository _messageRepository;
-    private readonly IModelService _ollamaService;
+    private readonly IRepositoryManager _repositoryManager;
+    private readonly IServiceManager _serviceManager;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
     public MessageService(
-        ISessionRepository sessionRepository,
-        IMessageRepository messageRepository,
         IMapper mapper,
-        IModelService ollamaService,
-        IUnitOfWork unitOfWork
+        IServiceManager serviceManager,
+        IUnitOfWork unitOfWork,
+        IRepositoryManager repositoryManager
     )
     {
-        _sessionRepository = sessionRepository;
-        _messageRepository = messageRepository;
         _mapper = mapper;
-        _ollamaService = ollamaService;
+        _serviceManager = serviceManager;
         _unitOfWork = unitOfWork;
+        _repositoryManager = repositoryManager;
     }
 
     public async Task<IEnumerable<GetMessagesResponse>> GetSessionMessagesAsync(GetMessagesRequest request)
     {
-        var session = await _sessionRepository.GetAsync(request.SessionId);
+        var session = await _repositoryManager.SessionRepository.GetAsync(request.SessionId);
 
         if (session == null)
             throw new NotFoundException("Session", request.SessionId);
@@ -46,14 +43,15 @@ public class MessageService : IMessageService
         if (session.UserId != request.UserId)
             throw new UnauthorizedAccessException("You are not authorized to send messages to this session.");
 
-        var messages = await _messageRepository.GetSessionMessagesAsync(request.SessionId);
+        var messages = await _repositoryManager.MessageRepository
+            .GetSessionMessagesAsync(request.SessionId);
 
         return _mapper.Map<IEnumerable<GetMessagesResponse>>(messages);
     }
 
     public async Task<CreateMessageResponse> SendMessageAsync(CreateMessageRequest request)
     {
-        var session = await _sessionRepository.GetAsync(request.SessionId);
+        var session = await _repositoryManager.SessionRepository.GetAsync(request.SessionId);
 
         if (session == null)
             throw new NotFoundException("Session", request.SessionId);
@@ -65,7 +63,7 @@ public class MessageService : IMessageService
 
         try
         {
-            var recentMessages = await _messageRepository
+            var recentMessages = await _repositoryManager.MessageRepository
                 .GetSessionMessagesAsync(request.SessionId, 10, true);
 
             var contextPrompt = BuildContextualPrompt(recentMessages, request.Query);
@@ -73,7 +71,8 @@ public class MessageService : IMessageService
             var stopwatch = Stopwatch.StartNew();
             Log.Information("Starting to generate response...");
 
-            var response = await _ollamaService.GenerateResponseAsync(contextPrompt);
+            var response = await _serviceManager.ModelService
+                .GenerateResponseAsync(contextPrompt);
 
             stopwatch.Stop();
             Log.Information("GenerateResponseAsync took {ElapsedMilliseconds} seconds", stopwatch.Elapsed.TotalSeconds);
@@ -82,11 +81,11 @@ public class MessageService : IMessageService
 
             message.Response = response;
 
-            await _messageRepository.CreateAsync(message);
+            await _repositoryManager.MessageRepository.CreateAsync(message);
 
             session.UpdatedAt = DateTime.Now;
 
-            await _sessionRepository.Update(session);
+            await _repositoryManager.SessionRepository.Update(session);
 
             await _unitOfWork.CommitTransactionAsync();
 

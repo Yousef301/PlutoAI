@@ -37,11 +37,11 @@ public static class ApiConfiguration
     private static IServiceCollection AddAuthenticationConfigurations(this IServiceCollection services,
         IConfiguration configuration)
     {
-        var clientId = configuration["ClientId"];
-        var clientSecret = configuration["ClientSecret"];
-        var issuer = configuration["Issuer"];
-        var audience = configuration["Audience"];
-        var secretKey = configuration["SecretKey"];
+        var clientId = configuration["Google:ClientId"];
+        var clientSecret = configuration["Google:ClientSecret"];
+        var issuer = configuration["Jwt:Issuer"];
+        var audience = configuration["Jwt:Audience"];
+        var secretKey = configuration["Jwt:SecretKey"];
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(issuer) ||
             string.IsNullOrEmpty(audience) || string.IsNullOrEmpty(secretKey))

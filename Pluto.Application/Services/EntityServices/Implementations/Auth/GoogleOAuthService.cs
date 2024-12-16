@@ -11,28 +11,28 @@ using InvalidConfigurationException = Microsoft.IdentityModel.Protocols.Configur
 
 namespace Pluto.Application.Services.EntityServices.Implementations.Auth;
 
-public class GoogleAuthService : IGoogleAuthService
+public class GoogleOAuthService : IGoogleOAuthService
 {
     private readonly IConfiguration _configuration;
-    private readonly IUserRepository _userRepository;
-    private readonly ITokenGeneratorService _tokenGeneratorService;
+    private readonly IRepositoryManager _repositoryManager;
+    private readonly IServiceManager _serviceManager;
 
-    public GoogleAuthService(
-        IUserRepository userRepository,
-        ITokenGeneratorService tokenGeneratorService,
-        IConfiguration configuration
+    public GoogleOAuthService(
+        IConfiguration configuration,
+        IRepositoryManager repositoryManager,
+        IServiceManager serviceManager
     )
     {
-        _userRepository = userRepository;
-        _tokenGeneratorService = tokenGeneratorService;
         _configuration = configuration;
+        _repositoryManager = repositoryManager;
+        _serviceManager = serviceManager;
     }
 
 
-    public string GetGoogleOAuthUrl()
+    public string GetOAuthUrl()
     {
-        var clientId = _configuration["ClientId"];
-        var redirectUri = _configuration["RedirectUri"];
+        var clientId = _configuration["Google:ClientId"];
+        var redirectUri = _configuration["Google:RedirectUri"];
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(redirectUri))
             throw new InvalidConfigurationException("Google OAuth client ID or redirect URI is missing.");
@@ -41,7 +41,7 @@ public class GoogleAuthService : IGoogleAuthService
             $"https://accounts.google.com/o/oauth2/auth?client_id={clientId}&redirect_uri={redirectUri}&response_type=code&scope=openid%20email%20profile";
     }
 
-    public async Task<TokenDto> HandleGoogleCallbackAsync(string code)
+    public async Task<TokenDto> HandleCallbackAsync(string code)
     {
         if (string.IsNullOrEmpty(code))
             throw new InvalidRequestException("Authorization code is missing or invalid.");
@@ -50,20 +50,21 @@ public class GoogleAuthService : IGoogleAuthService
         if (tokenResponse == null)
             throw new ServiceException("Failed to exchange code for tokens.");
 
-        var payload = await ValidateGoogleTokenAsync(tokenResponse);
+        var payload = await ValidateTokenAsync(tokenResponse);
         if (payload == null)
             throw new InvalidTokenException("The Google ID token is invalid or expired.");
 
-        var user = await _userRepository.FindOrCreateUserAsync(payload);
+        var user = await _repositoryManager.UserRepository
+            .FindOrCreateUserAsync(payload);
 
-        return await _tokenGeneratorService.GenerateToken(user, true);
+        return await _serviceManager.TokenGeneratorService.GenerateToken(user, true);
     }
 
     private async Task<string?> ExchangeCodeForTokensAsync(string code)
     {
-        var clientId = _configuration["ClientId"];
-        var clientSecret = _configuration["ClientSecret"];
-        var redirectUri = _configuration["RedirectUri"];
+        var clientId = _configuration["Google:ClientId"];
+        var clientSecret = _configuration["Google:ClientSecret"];
+        var redirectUri = _configuration["Google:RedirectUri"];
 
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(redirectUri))
             throw new InvalidConfigurationException(
@@ -104,13 +105,13 @@ public class GoogleAuthService : IGoogleAuthService
         }
     }
 
-    private async Task<GoogleJsonWebSignature.Payload?> ValidateGoogleTokenAsync(string idToken)
+    private async Task<GoogleJsonWebSignature.Payload?> ValidateTokenAsync(string idToken)
     {
         try
         {
             var settings = new GoogleJsonWebSignature.ValidationSettings
             {
-                Audience = new[] { _configuration["ClientId"] }
+                Audience = new[] { _configuration["Google:ClientId"] }
             };
 
             return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
