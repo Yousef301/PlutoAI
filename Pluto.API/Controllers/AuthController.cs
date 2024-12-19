@@ -84,11 +84,11 @@ public class AuthController : ControllerBase
         HttpContext.Request.Cookies.TryGetValue("accessToken", out var accessToken);
         HttpContext.Request.Cookies.TryGetValue("refreshToken", out var refreshToken);
 
-        await _serviceManager.TokenGeneratorService
+        var tokens = await _serviceManager.TokenGeneratorService
             .RefreshTokenAsync(new TokenDto(accessToken, refreshToken));
 
         _serviceManager.AuthenticationService
-            .SetTokenInsideCookie(new TokenDto(accessToken, refreshToken), HttpContext);
+            .SetTokenInsideCookie(new TokenDto(tokens.AccessToken, refreshToken), HttpContext);
 
         return Ok();
     }

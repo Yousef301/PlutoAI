@@ -50,28 +50,15 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<SignUpResponse> SignUpAsync(SignUpRequest request)
     {
-        try
-        {
-            if (await _repositoryManager.UserRepository.ExistsAsync(u => u.Email == request.Email))
-                throw new UserAlreadyExistsException("User with this email already exists.");
+        if (await _repositoryManager.UserRepository.ExistsAsync(u => u.Email == request.Email))
+            throw new UserAlreadyExistsException("User with this email already exists.");
 
-            var user = _mapper.Map<User>(request);
+        var user = _mapper.Map<User>(request);
+        user.Password = _serviceManager.PasswordEncryptionService.HashPassword(request.Password);
 
-            user.Password = _serviceManager.PasswordEncryptionService
-                .HashPassword(request.Password);
+        var createdUser = await _repositoryManager.UserRepository.CreateAsync(user);
 
-            var createdUser = await _repositoryManager.UserRepository.CreateAsync(user);
-
-            return _mapper.Map<SignUpResponse>(createdUser);
-        }
-        catch (UserAlreadyExistsException ex)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new InternalServerErrorException("An error occurred while processing your request.");
-        }
+        return _mapper.Map<SignUpResponse>(createdUser);
     }
 
     public async Task SendConfirmationEmail(EmailConfirmationRequest request)
@@ -98,12 +85,7 @@ public class AuthenticationService : IAuthenticationService
 
             await _unitOfWork.CommitTransactionAsync();
         }
-        catch (NotFoundException ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
-        catch (Exception ex)
+        catch
         {
             await _unitOfWork.RollbackTransactionAsync();
             throw;
@@ -113,34 +95,26 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task ConfirmEmail(string token)
     {
-        try
-        {
-            var user = await _repositoryManager.UserRepository.GetByConfirmationTokenAsync(Guid.Parse(token))
-                       ?? throw new InvalidTokenException("The provided token is invalid.");
+        var user = await _repositoryManager.UserRepository.GetByConfirmationTokenAsync(Guid.Parse(token))
+                   ?? throw new InvalidTokenException("The provided token is invalid.");
 
-            user.EmailConfirmed = true;
-            user.EmailConfirmationToken = null;
-            user.EmailConfirmationTokenExpiration = null;
+        user.EmailConfirmed = true;
+        user.EmailConfirmationToken = null;
+        user.EmailConfirmationTokenExpiration = null;
 
-            await _repositoryManager.UserRepository.UpdateAsync(user);
-        }
-        catch (InvalidTokenException ex)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new InternalServerErrorException("An error occurred while processing the email confirmation.");
-        }
+        await _repositoryManager.UserRepository.UpdateAsync(user);
     }
 
 
     public void SetTokenInsideCookie(TokenDto token, HttpContext httpContext)
     {
+        var accessTokenExpiration = _configuration.GetValue<int>("Cookies:AccessTokenExpirationMinutes");
+        var refreshTokenExpiration = _configuration.GetValue<int>("Cookies:RefreshTokenExpirationDays");
+
         httpContext.Response.Cookies.Append("accessToken", token.AccessToken,
             new CookieOptions
             {
-                Expires = DateTimeOffset.UtcNow.AddHours(1),
+                Expires = DateTimeOffset.UtcNow.AddMinutes(accessTokenExpiration),
                 HttpOnly = true,
                 IsEssential = true,
                 Secure = true,
@@ -150,7 +124,7 @@ public class AuthenticationService : IAuthenticationService
         httpContext.Response.Cookies.Append("refreshToken", token.RefreshToken,
             new CookieOptions
             {
-                Expires = DateTimeOffset.UtcNow.AddDays(7),
+                Expires = DateTimeOffset.UtcNow.AddDays(refreshTokenExpiration),
                 HttpOnly = true,
                 IsEssential = true,
                 Secure = true,

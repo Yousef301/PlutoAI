@@ -23,10 +23,9 @@ public class OllamaService : IModelService
     }
 
 
-    public async Task<string> GenerateResponseAsync(string prompt)
+    public async Task<string> GenerateResponseAsync(string prompt, string model)
     {
         var ollamaUrl = _configuration["Ollama:Url"];
-        var model = _configuration["Ollama:Model"];
 
         if (string.IsNullOrEmpty(ollamaUrl) || string.IsNullOrEmpty(model))
             throw new InvalidConfigurationException("Ollama API configuration is missing.");
@@ -43,38 +42,23 @@ public class OllamaService : IModelService
 
         var client = _httpClientFactory.CreateClient();
 
-        try
+        var response = await client.PostAsync(ollamaUrl, content);
+
+        if (response.IsSuccessStatusCode)
         {
-            var response = await client.PostAsync(ollamaUrl, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+            var responseObject = JsonSerializer.Deserialize<OllamaResponse>(responseString);
 
-            if (response.IsSuccessStatusCode)
+            if (responseObject == null || string.IsNullOrEmpty(responseObject.Response))
             {
-                var responseString = await response.Content.ReadAsStringAsync();
-                var responseObject = JsonSerializer.Deserialize<OllamaResponse>(responseString);
-
-                if (responseObject == null || string.IsNullOrEmpty(responseObject.Response))
-                {
-                    throw new InvalidOperationException("Invalid response from Ollama API: Response is null or empty.");
-                }
-
-                return responseObject.Response;
+                throw new InvalidOperationException("Invalid response from Ollama API: Response is null or empty.");
             }
 
-            var errorContent = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"Ollama API Error: {response.StatusCode}, Details: {errorContent}");
+            return responseObject.Response;
         }
-        catch (InvalidConfigurationException ex)
-        {
-            throw;
-        }
-        catch (HttpRequestException ex)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new Exception("An unexpected error occurred while generating a response from Ollama.", ex);
-        }
+
+        var errorContent = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException($"Ollama API Error: {response.StatusCode}, Details: {errorContent}");
     }
 
     private class OllamaResponse

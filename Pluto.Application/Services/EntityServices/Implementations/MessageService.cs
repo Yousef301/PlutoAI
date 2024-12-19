@@ -72,7 +72,7 @@ public class MessageService : IMessageService
             Log.Information("Starting to generate response...");
 
             var response = await _serviceManager.ModelService
-                .GenerateResponseAsync(contextPrompt);
+                .GenerateResponseAsync(contextPrompt, request.Model);
 
             stopwatch.Stop();
             Log.Information("GenerateResponseAsync took {ElapsedMilliseconds} seconds", stopwatch.Elapsed.TotalSeconds);
@@ -90,12 +90,6 @@ public class MessageService : IMessageService
             await _unitOfWork.CommitTransactionAsync();
 
             return _mapper.Map<CreateMessageResponse>(message);
-        }
-        catch (HttpRequestException ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-
-            throw new ServiceException("Failed to generate a response. Please try again later.", ex);
         }
         catch
         {

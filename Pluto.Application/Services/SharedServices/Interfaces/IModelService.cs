@@ -2,5 +2,5 @@
 
 public interface IModelService
 {
-    Task<string> GenerateResponseAsync(string prompt);
+    Task<string> GenerateResponseAsync(string prompt, string model);
 }

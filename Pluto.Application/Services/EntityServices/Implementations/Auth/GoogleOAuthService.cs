@@ -83,46 +83,28 @@ public class GoogleOAuthService : IGoogleOAuthService
             })
         };
 
-        try
+        var response = await client.SendAsync(tokenRequest);
+        if (!response.IsSuccessStatusCode)
         {
-            var response = await client.SendAsync(tokenRequest);
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new ServiceException("Failed to retrieve tokens from Google.");
-            }
-
-            var tokenData = await response.Content.ReadFromJsonAsync<GoogleTokenResponse>();
-            if (tokenData == null)
-            {
-                throw new ServiceException("Invalid response from Google token endpoint.");
-            }
-
-            return tokenData.IdToken;
+            throw new ServiceException("Failed to retrieve tokens from Google.");
         }
-        catch (HttpRequestException ex)
+
+        var tokenData = await response.Content.ReadFromJsonAsync<GoogleTokenResponse>();
+        if (tokenData == null)
         {
-            throw new ServiceException("Error communicating with Google token endpoint.", ex);
+            throw new ServiceException("Invalid response from Google token endpoint.");
         }
+
+        return tokenData.IdToken;
     }
 
     private async Task<GoogleJsonWebSignature.Payload?> ValidateTokenAsync(string idToken)
     {
-        try
+        var settings = new GoogleJsonWebSignature.ValidationSettings
         {
-            var settings = new GoogleJsonWebSignature.ValidationSettings
-            {
-                Audience = new[] { _configuration["Google:ClientId"] }
-            };
+            Audience = new[] { _configuration["Google:ClientId"] }
+        };
 
-            return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
-        }
-        catch (InvalidJwtException ex)
-        {
-            throw new InvalidTokenException("Google ID token is invalid.", ex);
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Error validating Google ID token.", ex);
-        }
+        return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
     }
 }
