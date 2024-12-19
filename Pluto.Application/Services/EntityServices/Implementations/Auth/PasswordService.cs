@@ -32,19 +32,31 @@ public class PasswordService : IPasswordService
 
     public async Task SendPasswordResetEmail(SendPasswordResetRequest request)
     {
+        await _unitOfWork.BeginTransactionAsync();
+
         try
         {
             var user = await _repositoryManager.UserRepository.GetByEmailAsync(request.Email)
                        ?? throw new NotFoundException("User", "email", request.Email);
 
-            await _unitOfWork.BeginTransactionAsync();
+            var activeRequests = await _repositoryManager.PasswordResetRequestRepository
+                .GetActiveRequestsByEmailAsync(user.Id);
+
+            var passwordResetRequests = activeRequests.ToList();
+            if (passwordResetRequests.Any())
+                passwordResetRequests.ForEach(activeRequest => activeRequest.Used = true);
 
             var baseUrl = _configuration["ResetPassword"];
+            var passwordResetExpiration = _configuration["PasswordResetExpirationMinutes"];
+
+            if (baseUrl == null || passwordResetExpiration == null)
+                throw new InvalidConfigurationException("Reset password configuration is missing.");
 
             var passwordResetRequest = new PasswordResetRequest
             {
                 Token = Guid.NewGuid(),
-                ExpiryDate = ((DateTimeOffset)DateTime.UtcNow.AddMinutes(10)).ToUnixTimeSeconds(),
+                ExpiryDate = ((DateTimeOffset)DateTime.UtcNow.AddMinutes(Int32.Parse(passwordResetExpiration)))
+                    .ToUnixTimeSeconds(),
                 UserId = user.Id
             };
 
@@ -54,14 +66,11 @@ public class PasswordService : IPasswordService
             await _serviceManager.EmailService.SendEmailAsync(request.Email, "Password Reset",
                 new EmailConfirmationBody(resetLink), Template.PasswordReset);
 
+            await _unitOfWork.SaveChangesAsync();
+
             await _unitOfWork.CommitTransactionAsync();
         }
-        catch (NotFoundException ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
-        catch (Exception ex)
+        catch
         {
             await _unitOfWork.RollbackTransactionAsync();
             throw;
@@ -71,6 +80,8 @@ public class PasswordService : IPasswordService
 
     public async Task ResetPassword(ResetPasswordRequest request)
     {
+        await _unitOfWork.BeginTransactionAsync();
+
         try
         {
             var passwordResetRequest = await _repositoryManager.PasswordResetRequestRepository
@@ -80,15 +91,15 @@ public class PasswordService : IPasswordService
             var user = await _repositoryManager.UserRepository.GetAsync(passwordResetRequest.UserId)
                        ?? throw new NotFoundException("User", "id", passwordResetRequest.UserId.ToString());
 
-            await _unitOfWork.BeginTransactionAsync();
-
             user.Password = _serviceManager.PasswordEncryptionService
                 .HashPassword(request.Password);
 
             await _repositoryManager.UserRepository.UpdateAsync(user);
 
             passwordResetRequest.Used = true;
-            await _repositoryManager.PasswordResetRequestRepository.UpdateAsync(passwordResetRequest);
+            _repositoryManager.PasswordResetRequestRepository.UpdateAsync(passwordResetRequest);
+
+            await _unitOfWork.SaveChangesAsync();
 
             await _unitOfWork.CommitTransactionAsync();
         }

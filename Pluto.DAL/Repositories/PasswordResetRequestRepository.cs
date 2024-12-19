@@ -15,6 +15,17 @@ public class PasswordResetRequestRepository : IPasswordResetRequestRepository
         _context = context;
     }
 
+
+    public async Task<IEnumerable<PasswordResetRequest>?> GetActiveRequestsByEmailAsync(int id)
+    {
+        return await _context.PasswordResetRequests
+            .Where(c => c.User.Id == id &&
+                        c.ExpiryDate.HasValue &&
+                        !c.Used
+            )
+            .ToListAsync();
+    }
+
     public async Task<PasswordResetRequest?> GetByTokenAsync(Guid token)
     {
         var passwordResetRequest = await _context.PasswordResetRequests
@@ -43,11 +54,9 @@ public class PasswordResetRequestRepository : IPasswordResetRequestRepository
         return passwordResetRequest;
     }
 
-    public async Task<PasswordResetRequest> UpdateAsync(PasswordResetRequest passwordResetRequest)
+    public PasswordResetRequest UpdateAsync(PasswordResetRequest passwordResetRequest)
     {
         _context.PasswordResetRequests.Update(passwordResetRequest);
-
-        await _context.SaveChangesAsync();
 
         return passwordResetRequest;
     }

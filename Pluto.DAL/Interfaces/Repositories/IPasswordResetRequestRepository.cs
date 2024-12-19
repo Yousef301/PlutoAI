@@ -5,8 +5,9 @@ namespace Pluto.DAL.Interfaces.Repositories;
 
 public interface IPasswordResetRequestRepository
 {
+    Task<IEnumerable<PasswordResetRequest>> GetActiveRequestsByEmailAsync(int id);
     Task<PasswordResetRequest?> GetByTokenAsync(Guid token);
     Task<PasswordResetRequest> CreateAsync(PasswordResetRequest passwordResetRequest);
-    Task<PasswordResetRequest> UpdateAsync(PasswordResetRequest passwordResetRequest);
+    PasswordResetRequest UpdateAsync(PasswordResetRequest passwordResetRequest);
     Task<bool> ExistsAsync(Expression<Func<PasswordResetRequest, bool>> predicate);
 }
