@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using AutoMapper;
+using Microsoft.Extensions.Configuration;
 using Pluto.Application.DTOs.Messages;
 using Pluto.Application.Services.EntityServices.Interfaces;
 using Pluto.Application.Services.SharedServices.Interfaces;
@@ -16,6 +17,7 @@ public class MessageService : IMessageService
 {
     private readonly IRepositoryManager _repositoryManager;
     private readonly IServiceManager _serviceManager;
+    private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
@@ -23,13 +25,15 @@ public class MessageService : IMessageService
         IMapper mapper,
         IServiceManager serviceManager,
         IUnitOfWork unitOfWork,
-        IRepositoryManager repositoryManager
+        IRepositoryManager repositoryManager,
+        IConfiguration configuration
     )
     {
         _mapper = mapper;
         _serviceManager = serviceManager;
         _unitOfWork = unitOfWork;
         _repositoryManager = repositoryManager;
+        _configuration = configuration;
     }
 
     public async Task<IEnumerable<GetMessagesResponse>> GetSessionMessagesAsync(GetMessagesRequest request)
@@ -59,12 +63,14 @@ public class MessageService : IMessageService
         if (session.UserId != request.UserId)
             throw new UnauthorizedAccessException("You are not authorized to send messages to this session.");
 
+        var messagesHistoryLimit = _configuration.GetValue<int>("HistoryLimit", 5);
+
         await _unitOfWork.BeginTransactionAsync();
 
         try
         {
             var recentMessages = await _repositoryManager.MessageRepository
-                .GetSessionMessagesAsync(request.SessionId, 10, true);
+                .GetSessionMessagesAsync(request.SessionId, messagesHistoryLimit, true);
 
             var contextPrompt = BuildContextualPrompt(recentMessages, request.Query);
 
