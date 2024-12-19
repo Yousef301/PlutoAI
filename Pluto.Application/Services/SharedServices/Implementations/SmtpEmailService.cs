@@ -33,44 +33,27 @@ public class SmtpEmailService : IEmailService
         Template template
     )
     {
-        try
+        var emailBody = template switch
         {
-            var emailBody = template switch
-            {
-                Template.EmailConfirmation => await GetEmailConfirmationBody(email, body.Link),
-                Template.PasswordReset => await GetResetPasswordBody(body.Link),
-                _ => throw new ArgumentOutOfRangeException(nameof(template), template, "Unsupported template type.")
-            };
+            Template.EmailConfirmation => await GetEmailConfirmationBody(email, body.Link),
+            Template.PasswordReset => await GetResetPasswordBody(body.Link),
+            _ => throw new ArgumentOutOfRangeException(nameof(template), template, "Unsupported template type.")
+        };
 
-            var message = new MailMessage
-            {
-                From = new MailAddress(_mail),
-                Subject = subject,
-                Body = emailBody,
-                IsBodyHtml = true
-            };
-            message.To.Add(email);
+        var message = new MailMessage
+        {
+            From = new MailAddress(_mail),
+            Subject = subject,
+            Body = emailBody,
+            IsBodyHtml = true
+        };
+        message.To.Add(email);
 
-            using var client = new SmtpClient("smtp.gmail.com", 587);
-            client.Credentials = new NetworkCredential(_mail, _password);
-            client.EnableSsl = true;
+        using var client = new SmtpClient("smtp.gmail.com", 587);
+        client.Credentials = new NetworkCredential(_mail, _password);
+        client.EnableSsl = true;
 
-            await client.SendMailAsync(message);
-        }
-        catch (ArgumentOutOfRangeException ex)
-        {
-            throw;
-        }
-        catch (SmtpException smtpEx)
-        {
-            throw new EmailSendingException("Failed to send email to {email} due to an SMTP error.",
-                smtpEx);
-        }
-        catch (Exception ex)
-        {
-            throw new EmailSendingException("An unexpected error occurred while sending the email.",
-                ex);
-        }
+        await client.SendMailAsync(message);
     }
 
     private async Task<string> GetEmailConfirmationBody(string email, string link)
@@ -80,20 +63,11 @@ public class SmtpEmailService : IEmailService
         if (!File.Exists(emailTemplatePath))
             throw new FileNotFoundException("Email template file not found.", emailTemplatePath);
 
-        try
-        {
-            var emailBody = await File.ReadAllTextAsync(emailTemplatePath);
+        var emailBody = await File.ReadAllTextAsync(emailTemplatePath);
 
-            return emailBody
-                .Replace("{{ACTIVATION_URL}}", link)
-                .Replace("{{USER_EMAIL}}", email);
-        }
-        catch (IOException ioEx)
-        {
-            throw
-                new EmailTemplateException("Error reading the email confirmation template file.",
-                    ioEx);
-        }
+        return emailBody
+            .Replace("{{ACTIVATION_URL}}", link)
+            .Replace("{{USER_EMAIL}}", email);
     }
 
     private async Task<string> GetResetPasswordBody(string link)
@@ -103,18 +77,10 @@ public class SmtpEmailService : IEmailService
         if (!File.Exists(resetTemplatePath))
             throw new FileNotFoundException("Password reset template file not found.", resetTemplatePath);
 
-        try
-        {
-            var emailBody = await File.ReadAllTextAsync(resetTemplatePath);
+        var emailBody = await File.ReadAllTextAsync(resetTemplatePath);
 
-            return emailBody
-                .Replace("{{RESET_URL}}", link);
-        }
-        catch (IOException ioEx)
-        {
-            throw new EmailTemplateException("Error reading the password reset template file.",
-                ioEx);
-        }
+        return emailBody
+            .Replace("{{RESET_URL}}", link);
     }
 
     private string GetTemplatePath(Template template,
