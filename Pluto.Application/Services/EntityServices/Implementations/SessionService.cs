@@ -57,4 +57,17 @@ public class SessionService : ISessionService
 
         return _mapper.Map<UpdateSessionTitleResponse>(sessionToUpdate);
     }
+
+    public async Task DeleteAsync(DeleteSessionRequest request)
+    {
+        var session = await _repositoryManager.SessionRepository.GetAsync(request.Id);
+
+        if (session == null)
+            throw new NotFoundException("Session", request.Id);
+
+        if (session.UserId != request.UserId)
+            throw new UnauthorizedAccessException("You are not allowed to delete this session.");
+
+        await _repositoryManager.SessionRepository.DeleteAsync(session);
+    }
 }

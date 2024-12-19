@@ -45,10 +45,16 @@ public class SessionRepository : ISessionRepository
     public async Task<Session> Update(Session session)
     {
         _context.Sessions.Update(session);
-        
+
         await _context.SaveChangesAsync();
-        
+
         return session;
+    }
+
+    public async Task DeleteAsync(Session session)
+    {
+        _context.Sessions.Remove(session);
+        await _context.SaveChangesAsync();
     }
 
     public async Task<bool> ExistsAsync(Expression<Func<Session, bool>> predicate)

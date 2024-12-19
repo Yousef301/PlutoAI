@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pluto.DAL.DBContext;
 
@@ -11,9 +12,11 @@ using Pluto.DAL.DBContext;
 namespace Pluto.DAL.Migrations
 {
     [DbContext(typeof(PlutoDbContext))]
-    partial class PlutoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241216173433_AddModelToMessagesAndRemoveFromSession")]
+    partial class AddModelToMessagesAndRemoveFromSession
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

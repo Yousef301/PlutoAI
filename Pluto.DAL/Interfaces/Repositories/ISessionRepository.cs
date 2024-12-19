@@ -9,5 +9,6 @@ public interface ISessionRepository
     Task<IEnumerable<Session>> GetUserSessionsAsync(int userId, bool includeMessages = false);
     Task<Session> CreateAsync(Session session);
     Task<Session> Update(Session session);
+    Task DeleteAsync(Session session);
     Task<bool> ExistsAsync(Expression<Func<Session, bool>> predicate);
 }

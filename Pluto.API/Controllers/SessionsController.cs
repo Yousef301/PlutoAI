@@ -56,4 +56,12 @@ public class SessionsController : ControllerBase
 
         return Ok(updatedSession);
     }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteSessionAsync(int id)
+    {
+        await _serviceManager.SessionService.DeleteAsync(new DeleteSessionRequest(id, _userContext.Id));
+
+        return NoContent();
+    }
 }

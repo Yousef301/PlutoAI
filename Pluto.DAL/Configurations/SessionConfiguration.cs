@@ -16,8 +16,5 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
             .WithOne(m => m.Session)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Property(s => s.Model)
-            .HasConversion(new EnumToStringConverter<Model>());
     }
 }
