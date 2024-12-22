@@ -114,4 +114,10 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
     }
+
+    [HttpGet("health")]
+    public IActionResult Health()
+    {
+        return Ok("App service is up and running");
+    }
 }

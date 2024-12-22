@@ -105,13 +105,13 @@ public class JwtTokenGeneratorService : ITokenGeneratorService
         List<Claim> claims
     )
     {
-        var tokenExpiration = _configuration.GetValue<int>("Jwt:TokenExpirationMinutes");
+        var tokenExpiration = _configuration["Jwt:TokenExpirationMinutes"]!;
 
         return new JwtSecurityToken(
             _issuer,
             _audience,
             claims,
-            expires: DateTime.Now.AddMinutes(tokenExpiration),
+            expires: DateTime.Now.AddMinutes(Int32.Parse(tokenExpiration)),
             signingCredentials: signingCredentials
         );
     }

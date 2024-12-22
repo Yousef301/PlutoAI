@@ -63,14 +63,18 @@ public class MessageService : IMessageService
         if (session.UserId != request.UserId)
             throw new UnauthorizedAccessException("You are not authorized to send messages to this session.");
 
-        var messagesHistoryLimit = _configuration.GetValue<int>("HistoryLimit", 5);
+        var messagesHistoryLimit = _configuration["HistoryLimit"];
+        var messages = 5;
+
+        if (messagesHistoryLimit != null)
+            messages = Int32.Parse(messagesHistoryLimit);
 
         await _unitOfWork.BeginTransactionAsync();
 
         try
         {
             var recentMessages = await _repositoryManager.MessageRepository
-                .GetSessionMessagesAsync(request.SessionId, messagesHistoryLimit, true);
+                .GetSessionMessagesAsync(request.SessionId, messages, true);
 
             var contextPrompt = BuildContextualPrompt(recentMessages, request.Query);
 

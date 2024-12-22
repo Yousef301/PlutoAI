@@ -4,6 +4,9 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5191";
+builder.WebHost.UseUrls($"http://*:{port}");
+
 builder.Logging.ClearProviders();
 
 builder.Host.UseSerilog();

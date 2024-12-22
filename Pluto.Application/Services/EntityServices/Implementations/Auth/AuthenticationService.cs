@@ -108,13 +108,13 @@ public class AuthenticationService : IAuthenticationService
 
     public void SetTokenInsideCookie(TokenDto token, HttpContext httpContext)
     {
-        var accessTokenExpiration = _configuration.GetValue<int>("Cookies:AccessTokenExpirationMinutes");
-        var refreshTokenExpiration = _configuration.GetValue<int>("Cookies:RefreshTokenExpirationDays");
+        var accessTokenExpiration = _configuration["Cookies:AccessTokenExpirationMinutes"]!;
+        var refreshTokenExpiration = _configuration["Cookies:RefreshTokenExpirationDays"]!;
 
         httpContext.Response.Cookies.Append("accessToken", token.AccessToken,
             new CookieOptions
             {
-                Expires = DateTimeOffset.UtcNow.AddMinutes(accessTokenExpiration),
+                Expires = DateTimeOffset.UtcNow.AddMinutes(Int32.Parse(accessTokenExpiration)),
                 HttpOnly = true,
                 IsEssential = true,
                 Secure = true,
@@ -124,7 +124,7 @@ public class AuthenticationService : IAuthenticationService
         httpContext.Response.Cookies.Append("refreshToken", token.RefreshToken,
             new CookieOptions
             {
-                Expires = DateTimeOffset.UtcNow.AddDays(refreshTokenExpiration),
+                Expires = DateTimeOffset.UtcNow.AddDays(Int32.Parse(refreshTokenExpiration)),
                 HttpOnly = true,
                 IsEssential = true,
                 Secure = true,
