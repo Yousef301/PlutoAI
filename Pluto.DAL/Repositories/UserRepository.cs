@@ -38,7 +38,7 @@ public class UserRepository : IUserRepository
             user.EmailConfirmationTokenExpiration.HasValue &&
             DateTimeOffset
                 .FromUnixTimeSeconds(user.EmailConfirmationTokenExpiration.Value)
-                .UtcDateTime < DateTime.Now)
+                .UtcDateTime > DateTime.UtcNow)
         {
             return user;
         }

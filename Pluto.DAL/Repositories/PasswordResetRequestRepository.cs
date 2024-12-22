@@ -16,7 +16,7 @@ public class PasswordResetRequestRepository : IPasswordResetRequestRepository
     }
 
 
-    public async Task<IEnumerable<PasswordResetRequest>?> GetActiveRequestsByEmailAsync(int id)
+    public async Task<IEnumerable<PasswordResetRequest>> GetActiveRequestsAsync(int id)
     {
         return await _context.PasswordResetRequests
             .Where(c => c.User.Id == id &&
@@ -36,7 +36,7 @@ public class PasswordResetRequestRepository : IPasswordResetRequestRepository
             !passwordResetRequest.Used &&
             DateTimeOffset
                 .FromUnixTimeSeconds(passwordResetRequest.ExpiryDate.Value)
-                .UtcDateTime < DateTime.Now)
+                .UtcDateTime > DateTime.UtcNow)
         {
             return passwordResetRequest;
         }

@@ -40,7 +40,7 @@ public class PasswordService : IPasswordService
                        ?? throw new NotFoundException("User", "email", request.Email);
 
             var activeRequests = await _repositoryManager.PasswordResetRequestRepository
-                .GetActiveRequestsByEmailAsync(user.Id);
+                .GetActiveRequestsAsync(user.Id);
 
             var passwordResetRequests = activeRequests.ToList();
             if (passwordResetRequests.Any())
