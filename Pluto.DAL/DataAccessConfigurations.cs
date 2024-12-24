@@ -16,6 +16,8 @@ public static class DataAccessConfigurations
         services.AddDbContext(configuration)
             .AddRepositories();
 
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
         return services;
     }
 

@@ -12,8 +12,8 @@ using Pluto.DAL.DBContext;
 namespace Pluto.DAL.Migrations
 {
     [DbContext(typeof(PlutoDbContext))]
-    [Migration("20241216173433_AddModelToMessagesAndRemoveFromSession")]
-    partial class AddModelToMessagesAndRemoveFromSession
+    [Migration("20241224090758_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
