@@ -13,7 +13,7 @@ public class PlutoDbContextFactory : IDesignTimeDbContextFactory<PlutoDbContext>
         var connectionString = Environment.GetEnvironmentVariable("PlutoAI") ??
                                throw new InvalidConfigurationException("Connection string configuration is missing.");
 
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseSqlServer(connectionString);
 
         return new PlutoDbContext(optionsBuilder.Options);
     }

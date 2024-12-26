@@ -12,7 +12,7 @@ using Pluto.DAL.DBContext;
 namespace Pluto.DAL.Migrations
 {
     [DbContext(typeof(PlutoDbContext))]
-    [Migration("20241224090758_InitialCreate")]
+    [Migration("20241226120907_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
