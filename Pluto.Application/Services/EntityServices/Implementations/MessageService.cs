@@ -2,6 +2,7 @@
 using System.Text;
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
+using Pluto.Application.DTOs.MessageEmbeddings;
 using Pluto.Application.DTOs.Messages;
 using Pluto.Application.Services.EntityServices.Interfaces;
 using Pluto.Application.Services.SharedServices.Interfaces;
@@ -55,51 +56,82 @@ public class MessageService : IMessageService
 
     public async Task<CreateMessageResponse> SendMessageAsync(CreateMessageRequest request)
     {
-        var session = await _repositoryManager.SessionRepository.GetAsync(request.SessionId);
+        var session = await ValidateSessionAsync(request.SessionId, request.UserId);
+        var messagesLimit = GetMessagesHistoryLimit();
+        var recentMessages = await GetRecentMessagesAsync(request.SessionId);
+        var filteredMessages = await GetFilteredMessagesAsync(recentMessages, request, messagesLimit);
+        var contextPrompt = BuildContextualPrompt(filteredMessages, request.Query);
+        var response = await GenerateResponseAsync(contextPrompt, request.Model);
+        var message = await SaveMessageAsync(request, response, session);
 
+        return _mapper.Map<CreateMessageResponse>(message);
+    }
+
+    private async Task<Session> ValidateSessionAsync(int sessionId, int userId)
+    {
+        var session = await _repositoryManager.SessionRepository.GetAsync(sessionId);
         if (session == null)
-            throw new NotFoundException("Session", request.SessionId);
+            throw new NotFoundException("Session", sessionId);
 
-        if (session.UserId != request.UserId)
+        if (session.UserId != userId)
             throw new UnauthorizedAccessException("You are not authorized to send messages to this session.");
 
-        var messagesHistoryLimit = _configuration["HistoryLimit"];
-        var messages = 5;
+        return session;
+    }
 
-        if (messagesHistoryLimit != null)
-            messages = Int32.Parse(messagesHistoryLimit);
+    private int GetMessagesHistoryLimit()
+    {
+        var limit = _configuration["HistoryLimit"];
+        return string.IsNullOrEmpty(limit) ? 3 : int.Parse(limit);
+    }
 
+    private async Task<List<Message>> GetRecentMessagesAsync(int sessionId)
+    {
+        return (await _repositoryManager.MessageRepository.GetSessionMessagesAsync(sessionId)).ToList();
+    }
+
+    private async Task<List<Message>> GetFilteredMessagesAsync(IEnumerable<Message> recentMessages,
+        CreateMessageRequest request, int limit)
+    {
+        var recentMessagesArr = recentMessages as Message[] ?? recentMessages.ToArray();
+
+        var messageBodies = recentMessagesArr.Select(m => new MessageBody(m.Id, m.Query)).ToList();
+        var embeddingsRequest = new MessageEmbeddingsRequest(messageBodies,
+            request.Query, limit);
+        var similarMessages = await _serviceManager.MessageEmbeddingService.GetSimilarMessages(embeddingsRequest);
+        var similarMessageIds = similarMessages.Select(m => m.id).ToHashSet() ?? new HashSet<int>();
+
+        return recentMessagesArr.Where(m => similarMessageIds.Contains(m.Id)).ToList();
+    }
+
+    private async Task<string> GenerateResponseAsync(string contextPrompt, string model)
+    {
+        Log.Information("Starting to generate response...");
+        var stopwatch = Stopwatch.StartNew();
+
+        var response = await _serviceManager.ModelService.GenerateResponseAsync(contextPrompt, model);
+
+        stopwatch.Stop();
+        Log.Information("GenerateResponseAsync took {ElapsedMilliseconds} seconds",
+            stopwatch.Elapsed.TotalSeconds);
+        return response;
+    }
+
+    private async Task<Message> SaveMessageAsync(CreateMessageRequest request, string response, Session session)
+    {
         await _unitOfWork.BeginTransactionAsync();
-
         try
         {
-            var recentMessages = await _repositoryManager.MessageRepository
-                .GetSessionMessagesAsync(request.SessionId, messages, true);
-
-            var contextPrompt = BuildContextualPrompt(recentMessages, request.Query);
-
-            var stopwatch = Stopwatch.StartNew();
-            Log.Information("Starting to generate response...");
-
-            var response = await _serviceManager.ModelService
-                .GenerateResponseAsync(contextPrompt, request.Model);
-
-            stopwatch.Stop();
-            Log.Information("GenerateResponseAsync took {ElapsedMilliseconds} seconds", stopwatch.Elapsed.TotalSeconds);
-
             var message = _mapper.Map<Message>(request);
-
             message.Response = response;
 
             await _repositoryManager.MessageRepository.CreateAsync(message);
 
             session.UpdatedAt = DateTime.Now;
-
             await _repositoryManager.SessionRepository.Update(session);
 
             await _unitOfWork.CommitTransactionAsync();
-
-            return _mapper.Map<CreateMessageResponse>(message);
+            return message;
         }
         catch
         {
@@ -114,16 +146,14 @@ public class MessageService : IMessageService
 
         foreach (var msg in recentMessages.OrderBy(m => m.Id))
         {
-            contextBuilder.AppendLine($"User: {msg.Query}");
-
+            contextBuilder.AppendLine($"Human: {msg.Query}");
             if (!string.IsNullOrWhiteSpace(msg.Response))
             {
-                contextBuilder.AppendLine($"Assistant: {msg.Response}");
+                contextBuilder.AppendLine($"AI: {msg.Response}");
             }
         }
 
-        contextBuilder.AppendLine($"User: {newQuery}");
-
+        contextBuilder.AppendLine($"Human: {newQuery}");
         return contextBuilder.ToString();
     }
 }

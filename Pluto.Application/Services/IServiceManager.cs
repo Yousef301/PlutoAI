@@ -15,4 +15,5 @@ public interface IServiceManager
     IAuthenticationService AuthenticationService { get; }
     IGoogleOAuthService GoogleOAuthService { get; }
     IPasswordEncryptionService PasswordEncryptionService { get; }
+    IMessageEmbeddingService MessageEmbeddingService { get; }
 }

@@ -24,6 +24,9 @@ public class ServiceManager : IServiceManager
     public IPasswordEncryptionService PasswordEncryptionService =>
         _serviceProvider.GetRequiredService<IPasswordEncryptionService>();
 
+    public IMessageEmbeddingService MessageEmbeddingService =>
+        _serviceProvider.GetRequiredService<IMessageEmbeddingService>();
+
     public ITokenGeneratorService TokenGeneratorService =>
         _serviceProvider.GetRequiredService<ITokenGeneratorService>();
 
